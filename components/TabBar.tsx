@@ -1,5 +1,6 @@
-import { View, TouchableOpacity, Text, StyleSheet, Dimensions } from 'react-native'
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@/theme/colors'
 
 const TAB_CONFIG = [
@@ -11,8 +12,10 @@ const TAB_CONFIG = [
 ]
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets()
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {/* top border pixel line */}
       <View style={styles.topBorder} />
 
