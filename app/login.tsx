@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors } from '@/theme/colors'
 
 // Pantalla de login — Fase 1 (Gonzalo) implementará el OAuth real aquí
