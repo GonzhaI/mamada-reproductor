@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { colors } from '@/theme/colors'
 
 export default function LoginScreen() {
-  const { login } = useAuth()
+  const { login, skipLogin } = useAuth()
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -14,15 +14,19 @@ export default function LoginScreen() {
           <Text style={styles.logoIcon}>▶</Text>
           <Text style={styles.logoTitle}>MAMADA{'\n'}REPRODUCTOR</Text>
           <View style={styles.logoDivider} />
-          <Text style={styles.logoSub}>POWERED BY TIDAL</Text>
+          <Text style={styles.logoSub}>PIXEL CASSETTE PLAYER</Text>
         </View>
 
         <TouchableOpacity style={styles.loginBtn} activeOpacity={0.8} onPress={login}>
           <Text style={styles.loginBtnText}>⏎ CONECTAR CON TIDAL</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.skipBtn} activeOpacity={0.8} onPress={skipLogin}>
+          <Text style={styles.skipBtnText}>INGRESAR COMO INVITADO</Text>
+        </TouchableOpacity>
+
         <Text style={styles.footer}>
-          Necesitas una cuenta TIDAL activa{'\n'}para usar esta app.
+          MODO INVITADO: busca y reproduce música{'\n'}con pistas de demostración.
         </Text>
 
       </View>
@@ -82,6 +86,19 @@ const styles = StyleSheet.create({
     fontFamily: 'PressStart2P_400Regular',
     fontSize: 7,
     color: colors.accent,
+    letterSpacing: 1,
+  },
+  skipBtn: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  skipBtnText: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 16,
+    color: colors.textMuted,
     letterSpacing: 1,
   },
   footer: {

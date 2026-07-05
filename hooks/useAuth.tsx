@@ -24,15 +24,20 @@ type AuthStatus = 'loading' | 'signedOut' | 'signedIn'
 interface AuthContextValue {
   status: AuthStatus
   accessToken: string | null
+  isGuest: boolean
   login: () => Promise<void>
+  skipLogin: () => Promise<void>
   logout: () => Promise<void>
 }
+
+const GUEST_FLAG_KEY = 'tidal_guest_mode'
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [tokens, setTokens] = useState<TidalTokens | null>(null)
+  const [isGuest, setIsGuest] = useState(false)
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
@@ -49,6 +54,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      const guestFlag = await SecureStore.getItemAsync(GUEST_FLAG_KEY)
+      if (guestFlag === 'true') {
+        if (!cancelled) {
+          setIsGuest(true)
+          setStatus('signedIn')
+        }
+        return
+      }
+
       const stored = await loadStoredTokens()
       if (!stored) {
         if (!cancelled) setStatus('signedOut')
@@ -97,9 +111,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await promptAsync()
   }, [promptAsync])
 
+  const skipLogin = useCallback(async () => {
+    await SecureStore.setItemAsync(GUEST_FLAG_KEY, 'true')
+    setIsGuest(true)
+    setTokens(null)
+    setStatus('signedIn')
+  }, [])
+
   const logout = useCallback(async () => {
     await clearTokens()
+    await SecureStore.deleteItemAsync(GUEST_FLAG_KEY)
     setTokens(null)
+    setIsGuest(false)
     setStatus('signedOut')
   }, [])
 
@@ -107,19 +130,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // fuerza el mismo logout que dispararía el usuario manualmente.
   useEffect(() => {
     setOnSessionExpired(() => {
-      void logout()
+      if (!isGuest) void logout()
     })
     return () => setOnSessionExpired(null)
-  }, [logout])
+  }, [logout, isGuest])
 
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
       accessToken: tokens?.accessToken ?? null,
+      isGuest,
       login,
+      skipLogin,
       logout,
     }),
-    [status, tokens, login, logout]
+    [status, tokens, login, skipLogin, logout, isGuest]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -259,6 +259,27 @@ Igual que con los endpoints de OAuth en la Fase 1, no pude verificar los paths d
 
 ---
 
+## FASE 4.5 — Modo invitado + desactivación de Tidal
+
+> Implementado 2026-07-05. Tidal OAuth redirige a login pero falla con error genérico (probablemente problema del lado de Tidal o de los endpoints registrados). Se agrega modo invitado para que la app sea funcional sin Tidal.
+
+### Cambios realizados
+
+- [x] `hooks/useAuth.tsx` — agregado `isGuest` y `skipLogin()`. Guarda flag en SecureStore.
+- [x] `app/login.tsx` — botón "INGRESAR COMO INVITADO" debajo del de Tidal.
+- [x] `hooks/useLibrary.ts` — en modo invitado retorna 12 tracks demo + 2 playlists demo.
+- [x] `hooks/useSearch.ts` — en modo invitado filtra sobre 24 tracks demo con debounce 300ms.
+- [x] `app/(tabs)/settings.tsx` — modo invitado muestra "MODO INVITADO · DEMO".
+- [x] Botón de logout en invitado dice "VOLVER AL INICIO".
+- [x] `.env` corregido: `TIDAL_CLIENT_ID` → `EXPO_PUBLIC_TIDAL_CLIENT_ID` (variable que Expo expone al cliente).
+- [x] Build EAS development APK generado y probado.
+
+### Streaming
+
+`getTrackStreamUrl()` retorna URLs de [SoundHelix](https://www.soundhelix.com/) (16 pistas públicas de demostración). Funciona para desarrollo y demo. No requiere Tidal.
+
+---
+
 ## FASE 5 — Build
 
 > Una vez que `main` está estable y probado en Expo Go.
@@ -267,10 +288,13 @@ Igual que con los endpoints de OAuth en la Fase 1, no pude verificar los paths d
 
 ### Android (Gonzalo o Amigo)
 
-- [ ] Instalar EAS CLI: `npm install -g eas-cli`
-- [ ] `eas login` con cuenta Expo
-- [ ] `eas build:configure`
-- [ ] `eas build --platform android --profile preview`
+- [x] Instalar EAS CLI: `npm install -g eas-cli`
+- [x] `eas login` con cuenta Expo
+- [x] `eas project:init` — proyecto creado en EAS
+- [x] Crear `eas.json` con perfiles development, preview, production
+- [x] Instalar `expo-dev-client`
+- [x] `eas build --platform android --profile development` — APK generado y probado
+- [ ] `eas build --platform android --profile preview` — APK standalone (sin dev tools)
 - [ ] Instalar `.apk` en Android personal vía QR o descarga directa
 
 ### iOS (si se tiene Mac + Apple ID)
@@ -314,9 +338,10 @@ git push origin feature/tu-rama
 | Fase | Responsable | Rama | Estado |
 |---|---|---|---|---|
 | 0 · Setup base | Gonzalo | `feature/setup-base` | ✅ Completado |
-| 1 · Auth OAuth | Gonzalo | `feature/auth-oauth` | ✅ Mergeado a `main` (2026-07-04) · falta prueba manual de login (requiere dev build) |
-| 2 · UI navegación | Amigo | `feature/ui-navigation` | ✅ Mergeado a `main` (2026-07-04) |
-| 2 · UI cassette | Amigo | `feature/ui-cassette` | ✅ Mergeado a `main` (2026-07-04) |
-| 3 · Tidal API | Gonzalo | `feature/tidal-api` | ✅ Mergeado a `main` (2026-07-04) · verificar endpoints contra dashboard |
-| 4 · Player core + UI | Gonzalo | `feature/player-core` | ✅ Mergeado a `main` (2026-07-05) · streaming con URL dummy de SoundHelix |
-| 5 · Build | Ambos | `feature/build-config` | Pendiente |
+| 1 · Auth OAuth | Gonzalo | `feature/auth-oauth` | ❌ Tidal login no funcional (error al redirigir) · reemplazado por modo invitado |
+| 2 · UI navegación | Amigo | `feature/ui-navigation` | ✅ Completado |
+| 2 · UI cassette | Amigo | `feature/ui-cassette` | ✅ Completado |
+| 3 · Tidal API | Gonzalo | `feature/tidal-api` | ❌ Sin acceso real a API de Tidal · reemplazado por mock data |
+| 4 · Player core + UI | Gonzalo | `feature/player-core` | ✅ Completado · streaming con SoundHelix URLs |
+| 4.5 · Modo invitado | Gonzalo | `main` | ✅ Completado · app funcional sin Tidal |
+| 5 · Build | Ambos | `feature/build-config` | 🔄 En progreso · dev build listo, falta preview APK |

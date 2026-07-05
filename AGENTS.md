@@ -19,14 +19,14 @@ DO NOT use `App.tsx` or `index.ts` as entry — Expo Router manages that.
 - `.env` contains real Tidal credentials — do not commit
 
 ## Implementation status
-- **Fase 0-4 completadas.** Setup, Auth OAuth, UI (navegación + cassette), Tidal API, Player con expo-av.
-- **Streaming:** usa URL dummy de SoundHelix (`services/tidalApi.ts`). Reemplazar cuando Tidal confirme acceso.
-- **Player:** `services/player.ts` + `hooks/usePlayer.tsx` (Context global).
-- **Pendiente:** Fase 5 (build EAS), prueba manual de login (requiere dev build).
+- **Fase 0-4 completadas.** Setup, Auth OAuth (no funcional), UI, Player.
+- **Fase 4.5 — Modo invitado.** Login tiene botón "INGRESAR COMO INVITADO". Sin Tidal: search/library usan datos demo, streaming con SoundHelix.
+- **Fase 5 — Build.** Dev APK generado en EAS. Falta preview/production.
+- **Tidal login no funcional.** Se desconoce la causa exacta. La app funciona completamente en modo invitado.
 
 ## Git workflow
 Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `main` on completed milestones.
 
 ## Important warnings
 - Do not remove `react-native-reanimated/plugin` from babel.config.js
-- `getTrackStreamUrl()` retorna URL dummy — no es un endpoint real de Tidal
+- `getTrackStreamUrl()` retorna URLs de SoundHelix (no Tidal real)

@@ -26,11 +26,12 @@ function SettingsRow({ label, value, accent, onPress }: SettingsRowProps) {
 }
 
 export default function SettingsScreen() {
-  const { logout, status } = useAuth()
+  const { logout, status, isGuest } = useAuth()
   const [user, setUser] = useState<TidalUser | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    if (isGuest) return
     if (status !== 'signedIn') return
     let cancelled = false
     setLoading(true)
@@ -39,7 +40,7 @@ export default function SettingsScreen() {
       .catch(() => { /* ignore */ })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [status])
+  }, [status, isGuest])
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -54,7 +55,20 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>CUENTA TIDAL</Text>
           <View style={styles.cardSeparator} />
-          {loading ? (
+          {isGuest ? (
+            <View style={styles.accountInfo}>
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>?</Text>
+              </View>
+              <View style={styles.accountText}>
+                <Text style={styles.accountName}>MODO INVITADO</Text>
+                <Text style={styles.accountEmail}>Sin conexión a TIDAL</Text>
+                <View style={styles.tierBadge}>
+                  <Text style={styles.tierText}>DEMO</Text>
+                </View>
+              </View>
+            </View>
+          ) : loading ? (
             <View style={styles.loadingRow}>
               <ActivityIndicator color={colors.accent} />
             </View>
@@ -104,10 +118,10 @@ export default function SettingsScreen() {
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={logout}>
-          <Text style={styles.logoutText}>⏏ CERRAR SESIÓN</Text>
+          <Text style={styles.logoutText}>{isGuest ? '⏎ VOLVER AL INICIO' : '⏏ CERRAR SESIÓN'}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.footer}>MAMADA REPRODUCTOR · v0.1</Text>
+        <Text style={styles.footer}>MAMADA REPRODUCTOR · v0.2</Text>
 
       </ScrollView>
     </SafeAreaView>
