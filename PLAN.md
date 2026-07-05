@@ -111,7 +111,7 @@ export const colors = {
 - [x] Guardar y recuperar tokens con `expo-secure-store`
 - [ ] Prueba manual: login completo → token guardado → refresh → logout
   - **Pendiente**: requiere un development build (Expo Go no soporta el redirect URI de esquema personalizado que pide TIDAL). Ver nota abajo.
-- [ ] PR → `develop`
+- [x] PR → `develop` — mergeado vía PR #3, y `develop` → `main` vía PR #6 (2026-07-04)
 
 **Nota — verificar antes de la primera prueba real:**
 Los endpoints de `discovery` en `services/tidalAuth.ts` (`login.tidal.com/oauth2/authorize` y `auth.tidal.com/v1/oauth2/token`) y los `SCOPES` no pudieron confirmarse contra la documentación en vivo del dashboard (el portal es una SPA protegida). Confirmá ambos valores en tu app registrada en developer.tidal.com antes de probar el login. Además, para probar el login hace falta un **development build** (`eas build --profile development` o `npx expo run:android`), no alcanza con Expo Go, porque TIDAL requiere un redirect URI de esquema personalizado (`reproductor://auth/callback`) que Expo Go no soporta.
@@ -137,53 +137,45 @@ token:     https://auth.tidal.com/v1/oauth2/token
 
 ### Tareas (Amigo) — rama `feature/ui-navigation`
 
-- [ ] Configurar `app/(tabs)/_layout.tsx` con tab bar custom:
+- [x] Configurar `app/(tabs)/_layout.tsx` con tab bar custom:
   - Tabs: Player · Library · Search · Queue · Settings
   - Íconos pixel-art (pueden ser texto o SVG simple por ahora)
   - Colores de la paleta (`colors.bg`, `colors.accent`)
-- [ ] Crear pantallas placeholder para cada tab:
+- [x] Crear pantallas placeholder para cada tab:
   - `app/(tabs)/index.tsx` — Player
   - `app/(tabs)/library.tsx` — Library
   - `app/(tabs)/search.tsx` — Search
   - `app/(tabs)/queue.tsx` — Queue
   - `app/(tabs)/settings.tsx` — Settings
-- [ ] Crear `components/TabBar.tsx` si se necesita tab bar completamente custom
-- [ ] Verificar navegación funciona en Expo Go
+- [x] Crear `components/TabBar.tsx` si se necesita tab bar completamente custom
+- [x] Verificar navegación funciona en Expo Go
 
 ### Tareas (Amigo) — rama `feature/ui-cassette`
 
-- [ ] Crear `components/cassette/CassetteBody.tsx`:
+- [x] Crear `components/cassette/CassetteBody.tsx`:
   - SVG de la carcasa oscura del cassette
   - Ventana transparente mostrando los carretes
   - Etiqueta C-90 arena con espacio para título/artista
-- [ ] Crear `components/cassette/Reel.tsx`:
+- [x] Crear `components/cassette/Reel.tsx`:
   - SVG del carrete (círculo con radios)
   - Animación de rotación con `react-native-reanimated`
   - Props: `isPlaying: boolean`, `speed?: number`
   - Los dos carretes giran a velocidades ligeramente distintas
-- [ ] Crear `components/cassette/Equalizer.tsx`:
+- [x] Crear `components/cassette/Equalizer.tsx`:
   - 7-10 barras verticales animadas
   - Animación aleatoria (valores aleatorios suaves) mientras `isPlaying`
   - Se congela cuando se pausa
-- [ ] Crear `components/Controls.tsx`:
+- [x] Crear `components/Controls.tsx`:
   - Botones: previous · play/pause · next
   - Estética de botones físicos (relieve con sombras en SVG/border)
   - Animación de presión al tocar
-- [ ] Crear `components/ProgressBar.tsx`:
+- [x] Crear `components/ProgressBar.tsx`:
   - Barra pixel-art con tiempo actual / duración
   - Animación suave del progreso
-- [ ] Armar `app/(tabs)/index.tsx` completo con datos mock:
-  ```ts
-  const mockTrack = {
-    title: "TRACK NAME",
-    artist: "ARTIST",
-    album: "ALBUM",
-    duration: 213,
-    quality: "HiFi",
-    artwork: null,
-  }
-  ```
-- [ ] PR → `develop`
+- [x] Armar `app/(tabs)/index.tsx` completo con datos mock
+- [x] PR → `develop` — mergeado vía PR #6 (2026-07-04)
+
+**Revisado 2026-07-04:** `feature/ui-cassette` ya traía `feature/ui-navigation` mergeada adentro. Al abrir el PR a `develop` aparecieron 3 conflictos reales contra `feature/auth-oauth` (Fase 1, mergeada primero): ambas ramas partieron del mismo commit y tocaron `app/_layout.tsx`, `app/login.tsx` y `app/index.tsx` con propósitos distintos (auth gate vs. navegación a `(tabs)`). Se resolvieron a mano combinando ambas piezas: `_layout.tsx` conserva el `AuthProvider`/gate de Fase 1 + splash/fonts de Fase 2; `login.tsx` conserva el diseño cassette con el `login()` real conectado; `app/index.tsx` se eliminó (reemplazado por `(tabs)/index.tsx`) y su botón de logout se movió a `(tabs)/settings.tsx`.
 
 ---
 
@@ -196,28 +188,34 @@ token:     https://auth.tidal.com/v1/oauth2/token
 
 ### Tareas (Gonzalo)
 
-- [ ] Crear `services/tidalApi.ts`:
+- [x] Crear `services/tidalApi.ts`:
   - Instancia de axios con `Authorization: Bearer <token>` automático
-  - Interceptor para refrescar token expirado (401 → refresh → retry)
+  - Interceptor para refrescar token expirado (401 → refresh → retry, con coalescing de refrescos concurrentes)
   - Manejo de errores tipado
-- [ ] Endpoints a implementar:
+- [x] Endpoints implementados (JSON:API, base `https://openapi.tidal.com/v2`):
   ```ts
-  getMe()                    // GET /v2/users/me
-  getFavoriteTracks()        // GET /v2/favorites/tracks
-  getPlaylists()             // GET /v2/playlists
-  getPlaylistTracks(id)      // GET /v2/playlists/{id}/tracks
-  searchTracks(query)        // GET /v2/catalog/search?type=TRACKS
-  getTrackStreamUrl(id)      // GET /v2/tracks/{id}/streamUrl
+  getMe()                       // GET /users/me
+  getFavoriteTracks(userId)     // GET /userCollections/{userId}/relationships/tracks
+  getPlaylists(userId)          // GET /userCollections/{userId}/relationships/playlists
+  getPlaylistTracks(playlistId) // GET /playlists/{id}/relationships/items
+  searchTracks(query)           // GET /searchResults/{query}
+  getTrackStreamUrl(id)         // STUB — ver riesgo abajo, no implementado de verdad
   ```
-- [ ] Crear tipos TypeScript para respuestas de la API:
+- [x] Crear tipos TypeScript para respuestas de la API:
   - `TidalTrack`, `TidalPlaylist`, `TidalUser`, `StreamUrl`
-- [ ] Crear `hooks/useLibrary.ts`:
+- [x] Crear `hooks/useLibrary.ts`:
   - Favoritos y playlists del usuario
   - Estado de carga y error
-- [ ] Crear `hooks/useSearch.ts`:
+- [x] Crear `hooks/useSearch.ts`:
   - Búsqueda con debounce (300ms)
-- [ ] Conectar datos reales a las pantallas library y search
+- [x] Conectar datos reales a las pantallas library y search
 - [ ] PR → `develop`
+
+**Revisado 2026-07-04 — implementado en `feature/tidal-api`, `npx tsc --noEmit` limpio:**
+
+Igual que con los endpoints de OAuth en la Fase 1, no pude verificar los paths del Open API v2 contra la documentación en vivo (portal SPA no fetcheable). Los paths y la forma JSON:API de las respuestas en `services/tidalApi.ts` son un best-effort basado en la spec pública del Open API v2 — confirmalos contra el dashboard/Postman collection de tu app antes de dar la fase por cerrada.
+
+**⚠️ Riesgo importante para la Fase 4 — streaming de audio:** según lo reportado públicamente por desarrolladores que usan el Open API v2 de TIDAL, el acceso self-serve del Developer Platform expone catálogo (búsqueda, tracks, álbumes, playlists, favoritos) pero **no incluye un endpoint de streaming/playback para apps de terceros** fuera de un acuerdo de partner aprobado. No pude confirmar esto con una fuente en vivo (mismo bloqueo de acceso al portal), así que `getTrackStreamUrl()` quedó como **stub que tira error explícito** en vez de simular un endpoint que probablemente no existe para esta app. Antes de arrancar la Fase 4, confirmá en tu dashboard de developer.tidal.com si tenés (o podés solicitar) acceso a playback — si no lo hay, la Fase 4 tal como está planteada (reproducir streams reales de Tidal) no es viable con el Developer Platform público y hay que replantearla.
 
 ---
 
@@ -319,10 +317,10 @@ git push origin feature/tu-rama
 | Fase | Responsable | Rama | Estado |
 |---|---|---|---|
 | 0 · Setup base | Gonzalo | `feature/setup-base` | ✅ Completado |
-| 1 · Auth OAuth | Gonzalo | `feature/auth-oauth` | Pendiente |
-| 2 · UI navegación | Amigo | `feature/ui-navigation` | Pendiente |
-| 2 · UI cassette | Amigo | `feature/ui-cassette` | Pendiente |
-| 3 · Tidal API | Gonzalo | `feature/tidal-api` | Pendiente |
-| 4 · Player core | Gonzalo | `feature/player-core` | Pendiente |
+| 1 · Auth OAuth | Gonzalo | `feature/auth-oauth` | ✅ Mergeado a `main` (2026-07-04) · falta prueba manual de login (requiere dev build) |
+| 2 · UI navegación | Amigo | `feature/ui-navigation` | ✅ Mergeado a `main` (2026-07-04) |
+| 2 · UI cassette | Amigo | `feature/ui-cassette` | ✅ Mergeado a `main` (2026-07-04) |
+| 3 · Tidal API | Gonzalo | `feature/tidal-api` | 🔄 Implementado, pendiente PR → `develop` y verificación de endpoints/riesgo de streaming |
+| 4 · Player core | Gonzalo | `feature/player-core` | Pendiente — bloqueado por el riesgo de streaming de la Fase 3 |
 | 4 · UI conectada | Amigo | `feature/player-core` | Pendiente |
 | 5 · Build | Ambos | `feature/build-config` | Pendiente |
