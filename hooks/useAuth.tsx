@@ -12,6 +12,7 @@ import {
   refreshTokens,
   type TidalTokens,
 } from '@/services/tidalAuth'
+import { setOnSessionExpired } from '@/services/tidalApi'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -101,6 +102,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setTokens(null)
     setStatus('signedOut')
   }, [])
+
+  // Si tidalApi.ts no logra refrescar un 401 (refresh token vencido/revocado),
+  // fuerza el mismo logout que dispararía el usuario manualmente.
+  useEffect(() => {
+    setOnSessionExpired(() => {
+      void logout()
+    })
+    return () => setOnSessionExpired(null)
+  }, [logout])
 
   const value = useMemo<AuthContextValue>(
     () => ({

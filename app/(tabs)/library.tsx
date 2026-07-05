@@ -1,16 +1,14 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useLibrary } from '@/hooks/useLibrary'
 import { colors } from '@/theme/colors'
 
-const mockPlaylists = [
-  { id: '1', name: 'MIS FAVORITOS',   count: 42, type: 'favorites' },
-  { id: '2', name: 'CHILL VIBES',     count: 18, type: 'playlist'  },
-  { id: '3', name: 'WORKOUT MIX',     count: 25, type: 'playlist'  },
-  { id: '4', name: 'LATE NIGHT',      count: 11, type: 'playlist'  },
-  { id: '5', name: 'ROAD TRIP',       count: 33, type: 'playlist'  },
-]
-
-type PlaylistItem = typeof mockPlaylists[number]
+type PlaylistItem = {
+  id: string
+  name: string
+  count: number
+  type: 'favorites' | 'playlist'
+}
 
 function PlaylistRow({ item }: { item: PlaylistItem }) {
   return (
@@ -30,6 +28,13 @@ function PlaylistRow({ item }: { item: PlaylistItem }) {
 }
 
 export default function LibraryScreen() {
+  const { favorites, playlists, loading, error, refresh } = useLibrary()
+
+  const items: PlaylistItem[] = [
+    { id: 'favorites', name: 'MIS FAVORITOS', count: favorites.length, type: 'favorites' },
+    ...playlists.map(p => ({ id: p.id, name: p.name.toUpperCase(), count: p.trackCount, type: 'playlist' as const })),
+  ]
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
@@ -38,14 +43,29 @@ export default function LibraryScreen() {
           <View style={styles.headerLine} />
         </View>
 
-        <FlatList
-          data={mockPlaylists}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => <PlaylistRow item={item} />}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
+        {loading ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator color={colors.accent} />
+          </View>
+        ) : error ? (
+          <View style={styles.centerState}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={refresh} activeOpacity={0.8}>
+              <Text style={styles.retryText}>REINTENTAR</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={items}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => <PlaylistRow item={item} />}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+            onRefresh={refresh}
+            refreshing={loading}
+          />
+        )}
       </View>
     </SafeAreaView>
   )
@@ -122,5 +142,31 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     opacity: 0.5,
+  },
+  centerState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    paddingBottom: 80,
+  },
+  errorText: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 16,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+  },
+  retryBtn: {
+    borderWidth: 2,
+    borderColor: colors.accent,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  retryText: {
+    fontFamily: 'PressStart2P_400Regular',
+    fontSize: 7,
+    color: colors.accent,
+    letterSpacing: 1,
   },
 })
