@@ -221,44 +221,41 @@ Igual que con los endpoints de OAuth en la Fase 1, no pude verificar los paths d
 
 ## FASE 4 — Reproducción de audio
 
-> Ambos trabajan juntos en esta fase. Coordinarse para no pisar el mismo archivo.
+> Implementado directamente sobre `main` (2026-07-05). Se saltó `develop` porque Gonzalo trabajó solo.
 
-**Rama:** `feature/player-core` (desde `develop` post Fase 2 y 3)
+**Rama:** `feature/player-core`
 
-### Tareas (Gonzalo) — lógica de audio
+**Nota — streaming:** El Open API v2 público de Tidal no expone un endpoint de streaming para apps de terceros sin acuerdo partner. `getTrackStreamUrl()` se modificó para retornar una URL dummy de SoundHelix en vez de fallar. Cuando se tenga acceso real al streaming de Tidal, reemplazar la URL en `services/tidalApi.ts`.
 
-- [ ] Crear `services/player.ts`:
-  - Wrapper sobre `expo-av` (`Audio.Sound`)
-  - `loadTrack(streamUrl)` — carga y prepara el audio
-  - `play()`, `pause()`, `seek(positionMs)`
-  - `next()`, `previous()` — avanza en la cola
-  - Listener de progreso (actualiza posición cada segundo)
-- [ ] Crear `hooks/usePlayer.ts`:
-  - Estado global del reproductor: `currentTrack`, `isPlaying`, `position`, `duration`, `queue`
-  - Expone controles al resto de la app
-  - Conecta `getTrackStreamUrl` de la API antes de cargar audio
+### Tareas (Gonzalo) — lógica de audio ✅
 
-### Tareas (Amigo) — conectar UI al estado real
+- [x] Crear `services/player.ts`:
+  - Wrapper sobre `expo-av` (`Audio.Sound`) con `setOnPlaybackStatusUpdate`
+  - `loadTrack(uri)`, `play()`, `pause()`, `togglePlay()`, `seek(positionMs)`, `unload()`
+  - Progreso notificado a listeners vía suscripción
+- [x] Crear `hooks/usePlayer.tsx`:
+  - Context + Provider con estado global: `currentTrack`, `queue`, `queueIndex`, `isPlaying`, `position`, `duration`, `isLoaded`
+  - Métodos: `playTrack()`, `togglePlay()`, `seekTo()`, `next()`, `previous()`, `addToQueue()`, `removeFromQueue()`, `clearQueue()`, `jumpToIndex()`
+  - Auto-advance al finalizar un track (>500ms del final)
+  - `getTrackStreamUrl` llamada antes de cargar audio
 
-- [ ] Conectar `Controls.tsx` a `usePlayer`:
-  - Play/pause reactivo al estado real
-  - Next/previous llaman al hook
-- [ ] Conectar `Reel.tsx` a `isPlaying` del hook
-- [ ] Conectar `Equalizer.tsx` a `isPlaying`
-- [ ] Conectar `ProgressBar.tsx` a `position` y `duration` del hook
-- [ ] Mostrar artwork real (imagen desde URL de Tidal) en el cassette
-- [ ] Completar pantalla Queue (`app/(tabs)/queue.tsx`):
-  - Lista de tracks en la cola
-  - Track activo resaltado
-  - Tap en track → salta a ese track
+### Tareas (Amigo) — conectar UI al estado real ✅
 
-### Tareas conjuntas
+- [x] Conectar `Controls.tsx` a `usePlayer` (play/pause/next/previous reactivos)
+- [x] Conectar `Reel.tsx` a `isPlaying` (ya funcionaba, ahora recibe la prop real)
+- [x] Conectar `Equalizer.tsx` a `isPlaying`
+- [x] Conectar `ProgressBar.tsx` a `position` y `duration`
+- [x] Mostrar artwork real en el cassette (`CassetteBody` acepta `coverUrl`)
+- [x] Completar pantalla Queue con datos reales de la cola
 
-- [ ] Integrar `usePlayer` con `useLibrary` para cargar playlists en la cola
-- [ ] Settings screen: mostrar cuenta del usuario, calidad actual, botón logout
-- [ ] Prueba end-to-end: login → buscar canción → reproducir → pausar → siguiente
+### Tareas conjuntas ✅
 
-**PR → `develop` → merge a `main` cuando todo funcione**
+- [x] Integrar `usePlayer` con `useLibrary` (tap en favs/playlist carga cola)
+- [x] Settings screen con datos reales de `getMe()`
+- [x] `PlayerScreen` con estado vacío cuando no hay track seleccionado
+- [ ] Prueba end-to-end: login → buscar canción → reproducir → pausar → siguiente (pendiente — requiere dev build para login real)
+
+**Mergeado directo a `main` vía commit `90ff169` (2026-07-05)**
 
 ---
 
@@ -315,12 +312,11 @@ git push origin feature/tu-rama
 ## Estado de avance
 
 | Fase | Responsable | Rama | Estado |
-|---|---|---|---|
+|---|---|---|---|---|
 | 0 · Setup base | Gonzalo | `feature/setup-base` | ✅ Completado |
 | 1 · Auth OAuth | Gonzalo | `feature/auth-oauth` | ✅ Mergeado a `main` (2026-07-04) · falta prueba manual de login (requiere dev build) |
 | 2 · UI navegación | Amigo | `feature/ui-navigation` | ✅ Mergeado a `main` (2026-07-04) |
 | 2 · UI cassette | Amigo | `feature/ui-cassette` | ✅ Mergeado a `main` (2026-07-04) |
-| 3 · Tidal API | Gonzalo | `feature/tidal-api` | 🔄 Implementado, pendiente PR → `develop` y verificación de endpoints/riesgo de streaming |
-| 4 · Player core | Gonzalo | `feature/player-core` | Pendiente — bloqueado por el riesgo de streaming de la Fase 3 |
-| 4 · UI conectada | Amigo | `feature/player-core` | Pendiente |
+| 3 · Tidal API | Gonzalo | `feature/tidal-api` | ✅ Mergeado a `main` (2026-07-04) · verificar endpoints contra dashboard |
+| 4 · Player core + UI | Gonzalo | `feature/player-core` | ✅ Mergeado a `main` (2026-07-05) · streaming con URL dummy de SoundHelix |
 | 5 · Build | Ambos | `feature/build-config` | Pendiente |
