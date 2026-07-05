@@ -1,7 +1,13 @@
-import { Stack } from 'expo-router'
+import { useEffect } from 'react'
+import { Stack, SplashScreen } from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
 import { StyleSheet, View } from 'react-native'
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
+import { useFonts } from '@/hooks/useFonts'
 import { colors } from '@/theme/colors'
+
+// Prevent the splash screen from auto-hiding before fonts are loaded
+SplashScreen.preventAutoHideAsync()
 
 function RootNavigator() {
   const { status } = useAuth()
@@ -13,7 +19,7 @@ function RootNavigator() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={status === 'signedIn'}>
-        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
       </Stack.Protected>
 
       <Stack.Protected guard={status === 'signedOut'}>
@@ -24,8 +30,21 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const { fontsLoaded, fontError } = useFonts()
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync()
+    }
+  }, [fontsLoaded, fontError])
+
+  if (!fontsLoaded && !fontError) {
+    return null
+  }
+
   return (
     <AuthProvider>
+      <StatusBar style="light" backgroundColor={colors.bg} />
       <RootNavigator />
     </AuthProvider>
   )
