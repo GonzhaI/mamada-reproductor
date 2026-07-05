@@ -36,18 +36,18 @@ fix/<x>       ← bugfixes puntuales
 
 ### Tareas (Gonzalo)
 
-- [ ] Instalar dependencias del proyecto definitivo:
+- [x] Instalar dependencias del proyecto definitivo:
   ```bash
   npx expo install expo-router expo-auth-session expo-secure-store expo-av
   npx expo install react-native-svg react-native-reanimated
   npx expo install @expo-google-fonts/press-start-2p @expo-google-fonts/vt323
   npx expo install axios
   ```
-- [ ] Configurar `app.json`:
+- [x] Configurar `app.json`:
   - `scheme` para deep linking OAuth (`reproductor://`)
   - `plugins: ["expo-router"]`
   - Configurar `android` y `ios` básico
-- [ ] Crear estructura de carpetas vacías con `.gitkeep`:
+- [x] Crear estructura de carpetas vacías con `.gitkeep`:
   ```
   app/(tabs)/   app/login.tsx
   components/cassette/
@@ -55,11 +55,13 @@ fix/<x>       ← bugfixes puntuales
   hooks/
   theme/
   ```
-- [ ] Crear `theme/colors.ts` con la paleta tierra/marrón
-- [ ] Crear `theme/typography.ts` con los estilos de fuentes
-- [ ] Configurar `tsconfig.json` con paths alias (`@/`)
-- [ ] Verificar que `expo start` levanta sin errores
-- [ ] PR → `develop`
+- [x] Crear `theme/colors.ts` con la paleta tierra/marrón
+- [x] Crear `theme/typography.ts` con los estilos de fuentes
+- [x] Configurar `tsconfig.json` con paths alias (`@/`)
+- [x] Verificar que `expo start` levanta sin errores
+- [x] PR → `develop` — mergeado a `main` en `c6fd4cc` (PR #1 y #2)
+
+**Revisado 2026-07-04:** todo lo anterior está implementado y verificado (bundling con `expo export` sin errores). Se limpiaron dos restos menores del scaffold original: se borraron `App.tsx`/`index.ts` (código muerto pre-expo-router, ya que `package.json` apunta a `"main": "expo-router/entry"`) y se actualizó `.env.example` para reflejar las variables que realmente usa el código (`EXPO_PUBLIC_TIDAL_CLIENT_ID` en vez de `TIDAL_REDIRECT_URI`, que ya no aplica porque el redirect se calcula con `AuthSession.makeRedirectUri()`).
 
 **Paleta de colores de referencia:**
 ```ts
@@ -88,27 +90,31 @@ export const colors = {
 
 ### Tareas (Gonzalo)
 
-- [ ] Registrar la app en [developer.tidal.com](https://developer.tidal.com)
+- [x] Registrar la app en [developer.tidal.com](https://developer.tidal.com)
   - Obtener `TIDAL_CLIENT_ID` y `TIDAL_CLIENT_SECRET`
   - Configurar redirect URI: `reproductor://auth/callback`
   - Copiar valores al `.env`
-- [ ] Crear `services/tidalAuth.ts`:
+- [x] Crear `services/tidalAuth.ts`:
   - Discovery document de Tidal (endpoints authorize/token)
   - `login()` — inicia flujo OAuth 2.1 con `expo-auth-session`
   - `refreshToken()` — renueva access token con refresh token
   - `logout()` — borra tokens del secure store
-- [ ] Crear `hooks/useAuth.ts`:
+- [x] Crear `hooks/useAuth.ts`:
   - Estado: `isAuthenticated`, `accessToken`, `user`
   - Expone `login()` y `logout()`
   - Al iniciar app, intenta recuperar refresh token guardado
-- [ ] Crear `app/login.tsx`:
+- [x] Crear `app/login.tsx`:
   - Pantalla de bienvenida con botón "Conectar con TIDAL"
   - Pixel-art minimalista (puede ser placeholder de texto por ahora)
-- [ ] Crear `app/_layout.tsx`:
+- [x] Crear `app/_layout.tsx`:
   - Auth gate: si no hay token → `login.tsx`, si hay → `(tabs)/`
-- [ ] Guardar y recuperar tokens con `expo-secure-store`
+- [x] Guardar y recuperar tokens con `expo-secure-store`
 - [ ] Prueba manual: login completo → token guardado → refresh → logout
+  - **Pendiente**: requiere un development build (Expo Go no soporta el redirect URI de esquema personalizado que pide TIDAL). Ver nota abajo.
 - [ ] PR → `develop`
+
+**Nota — verificar antes de la primera prueba real:**
+Los endpoints de `discovery` en `services/tidalAuth.ts` (`login.tidal.com/oauth2/authorize` y `auth.tidal.com/v1/oauth2/token`) y los `SCOPES` no pudieron confirmarse contra la documentación en vivo del dashboard (el portal es una SPA protegida). Confirmá ambos valores en tu app registrada en developer.tidal.com antes de probar el login. Además, para probar el login hace falta un **development build** (`eas build --profile development` o `npx expo run:android`), no alcanza con Expo Go, porque TIDAL requiere un redirect URI de esquema personalizado (`reproductor://auth/callback`) que Expo Go no soporta.
 
 **Endpoints Tidal OAuth:**
 ```
@@ -312,7 +318,7 @@ git push origin feature/tu-rama
 
 | Fase | Responsable | Rama | Estado |
 |---|---|---|---|
-| 0 · Setup base | Gonzalo | `feature/setup-base` | Pendiente |
+| 0 · Setup base | Gonzalo | `feature/setup-base` | ✅ Completado |
 | 1 · Auth OAuth | Gonzalo | `feature/auth-oauth` | Pendiente |
 | 2 · UI navegación | Amigo | `feature/ui-navigation` | Pendiente |
 | 2 · UI cassette | Amigo | `feature/ui-cassette` | Pendiente |
