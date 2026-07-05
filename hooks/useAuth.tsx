@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import * as AuthSession from 'expo-auth-session'
+import * as SecureStore from 'expo-secure-store'
 import * as WebBrowser from 'expo-web-browser'
 import {
   CLIENT_ID,
