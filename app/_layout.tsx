@@ -3,6 +3,7 @@ import { Stack, SplashScreen } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { StyleSheet, View } from 'react-native'
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
+import { PlayerProvider } from '@/hooks/usePlayer'
 import { useFonts } from '@/hooks/useFonts'
 import { colors } from '@/theme/colors'
 
@@ -44,8 +45,10 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <StatusBar style="light" backgroundColor={colors.bg} />
-      <RootNavigator />
+      <PlayerProvider>
+        <StatusBar style="light" backgroundColor={colors.bg} />
+        <RootNavigator />
+      </PlayerProvider>
     </AuthProvider>
   )
 }

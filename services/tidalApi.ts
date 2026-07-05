@@ -248,15 +248,15 @@ export async function searchTracks(query: string): Promise<TidalTrack[]> {
 }
 
 /**
- * STUB — ver nota al inicio del archivo. El Open API v2 público no confirmó exponer
- * streaming de audio completo para apps de terceros. No inventamos un path que
- * "aparente" andar: esto tira un error explícito hasta confirmar en el dashboard
- * si la app tiene (o puede solicitar) acceso a playback.
+ * DEV — retorna una URL de prueba pública.
+ * Reemplazar con el endpoint real de streaming de TIDAL cuando esté disponible
+ * (actualmente el Open API v2 público no expone streaming para apps de terceros
+ *  sin acuerdo de partner).
  */
 export async function getTrackStreamUrl(_trackId: string): Promise<StreamUrl> {
-  throw new Error(
-    'getTrackStreamUrl: sin confirmar. El Open API v2 de TIDAL no documenta públicamente ' +
-      'un endpoint de streaming para apps de terceros sin acuerdo de partner. Verificar en ' +
-      'developer.tidal.com antes de construir la Fase 4 sobre esta función.'
-  )
+  return {
+    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    quality: 'HIGH',
+    codec: 'MP3',
+  }
 }

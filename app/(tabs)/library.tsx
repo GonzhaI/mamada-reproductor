@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLibrary } from '@/hooks/useLibrary'
+import { usePlayer } from '@/hooks/usePlayer'
+import { getPlaylistTracks } from '@/services/tidalApi'
 import { colors } from '@/theme/colors'
 
 type PlaylistItem = {
@@ -10,9 +12,9 @@ type PlaylistItem = {
   type: 'favorites' | 'playlist'
 }
 
-function PlaylistRow({ item }: { item: PlaylistItem }) {
+function PlaylistRow({ item, onPress }: { item: PlaylistItem; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.rowIcon}>
         <Text style={styles.rowIconText}>
           {item.type === 'favorites' ? '♥' : '◈'}
@@ -29,6 +31,24 @@ function PlaylistRow({ item }: { item: PlaylistItem }) {
 
 export default function LibraryScreen() {
   const { favorites, playlists, loading, error, refresh } = useLibrary()
+  const { playTrack } = usePlayer()
+
+  const handlePlayFavorites = () => {
+    if (favorites.length > 0) {
+      playTrack(favorites[0], favorites)
+    }
+  }
+
+  const handlePlayPlaylist = async (playlistId: string) => {
+    try {
+      const tracks = await getPlaylistTracks(playlistId)
+      if (tracks.length > 0) {
+        playTrack(tracks[0], tracks)
+      }
+    } catch {
+      // Silently fail — playlist might not be accessible
+    }
+  }
 
   const items: PlaylistItem[] = [
     { id: 'favorites', name: 'MIS FAVORITOS', count: favorites.length, type: 'favorites' },
@@ -58,7 +78,12 @@ export default function LibraryScreen() {
           <FlatList
             data={items}
             keyExtractor={item => item.id}
-            renderItem={({ item }) => <PlaylistRow item={item} />}
+            renderItem={({ item }) => (
+              <PlaylistRow
+                item={item}
+                onPress={item.type === 'favorites' ? handlePlayFavorites : () => handlePlayPlaylist(item.id)}
+              />
+            )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}

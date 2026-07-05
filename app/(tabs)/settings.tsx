@@ -1,14 +1,9 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
+import { useEffect, useState } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '@/hooks/useAuth'
+import { getMe, type TidalUser } from '@/services/tidalApi'
 import { colors } from '@/theme/colors'
-
-// Mock — pendiente reemplazar con datos reales del perfil de Tidal
-const mockUser = {
-  name: 'GONZALO',
-  email: 'user@example.com',
-  tier: 'HiFi Plus',
-}
 
 type SettingsRowProps = {
   label: string
@@ -31,7 +26,20 @@ function SettingsRow({ label, value, accent, onPress }: SettingsRowProps) {
 }
 
 export default function SettingsScreen() {
-  const { logout } = useAuth()
+  const { logout, status } = useAuth()
+  const [user, setUser] = useState<TidalUser | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (status !== 'signedIn') return
+    let cancelled = false
+    setLoading(true)
+    getMe()
+      .then(u => { if (!cancelled) setUser(u) })
+      .catch(() => { /* ignore */ })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [status])
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -46,18 +54,32 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>CUENTA TIDAL</Text>
           <View style={styles.cardSeparator} />
-          <View style={styles.accountInfo}>
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>{mockUser.name.charAt(0)}</Text>
+          {loading ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color={colors.accent} />
             </View>
-            <View style={styles.accountText}>
-              <Text style={styles.accountName}>{mockUser.name}</Text>
-              <Text style={styles.accountEmail}>{mockUser.email}</Text>
-              <View style={styles.tierBadge}>
-                <Text style={styles.tierText}>{mockUser.tier.toUpperCase()}</Text>
+          ) : user ? (
+            <View style={styles.accountInfo}>
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
+                  {(user.username ?? user.id ?? '?').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.accountText}>
+                <Text style={styles.accountName}>{user.username?.toUpperCase() ?? 'TIDAL USER'}</Text>
+                <Text style={styles.accountEmail}>ID: {user.id}</Text>
+                {user.countryCode && (
+                  <View style={styles.tierBadge}>
+                    <Text style={styles.tierText}>{user.countryCode}</Text>
+                  </View>
+                )}
               </View>
             </View>
-          </View>
+          ) : (
+            <View style={styles.loadingRow}>
+              <Text style={styles.errorText}>NO SE PUDO CARGAR</Text>
+            </View>
+          )}
         </View>
 
         {/* Audio quality card */}
@@ -230,5 +252,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 1,
     opacity: 0.5,
+  },
+  loadingRow: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 14,
+    color: colors.textMuted,
   },
 })

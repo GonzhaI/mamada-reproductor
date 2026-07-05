@@ -1,5 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native'
-import { Svg, Rect, Path, Circle } from 'react-native-svg'
+import { View, Text, StyleSheet, Image } from 'react-native'
 import { Reel } from './Reel'
 import { colors } from '@/theme/colors'
 
@@ -7,9 +6,10 @@ interface CassetteBodyProps {
   title: string
   artist: string
   isPlaying: boolean
+  coverUrl?: string
 }
 
-export function CassetteBody({ title, artist, isPlaying }: CassetteBodyProps) {
+export function CassetteBody({ title, artist, isPlaying, coverUrl }: CassetteBodyProps) {
   return (
     <View style={styles.cassetteWrapper}>
       {/* Background/Base of Cassette */}
@@ -40,6 +40,13 @@ export function CassetteBody({ title, artist, isPlaying }: CassetteBodyProps) {
               {artist}
             </Text>
           </View>
+
+          {/* Cover art thumbnail */}
+          {coverUrl && (
+            <View style={styles.coverRow}>
+              <Image source={{ uri: coverUrl }} style={styles.coverArt} />
+            </View>
+          )}
 
           {/* Reel Window cutout */}
           <View style={styles.windowCutout}>
@@ -142,7 +149,17 @@ const styles = StyleSheet.create({
   },
   trackInfo: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  coverRow: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  coverArt: {
+    width: 64,
+    height: 64,
+    borderWidth: 1,
+    borderColor: colors.labelDark,
   },
   title: {
     fontFamily: 'PressStart2P_400Regular',

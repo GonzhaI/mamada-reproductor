@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useSearch } from '@/hooks/useSearch'
+import { usePlayer } from '@/hooks/usePlayer'
 import type { TidalTrack } from '@/services/tidalApi'
 import { colors } from '@/theme/colors'
 
@@ -32,9 +33,9 @@ function formatDuration(totalSeconds: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
 
-function TrackRow({ item }: { item: TidalTrack }) {
+function TrackRow({ item, onPress }: { item: TidalTrack; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.trackRow} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.trackRow} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.trackInfo}>
         <Text style={styles.trackTitle} numberOfLines={1}>{item.title.toUpperCase()}</Text>
         <Text style={styles.trackArtist}>{item.artists.map(a => a.name).join(', ')}</Text>
@@ -51,7 +52,12 @@ function TrackRow({ item }: { item: TidalTrack }) {
 
 export default function SearchScreen() {
   const { query, setQuery, results, loading, error } = useSearch()
+  const { playTrack } = usePlayer()
   const showResults = query.length > 0
+
+  const handlePlayTrack = (track: TidalTrack) => {
+    playTrack(track, results)
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -92,7 +98,7 @@ export default function SearchScreen() {
           <FlatList
             data={results}
             keyExtractor={item => item.id}
-            renderItem={({ item }) => <TrackRow item={item} />}
+            renderItem={({ item }) => <TrackRow item={item} onPress={() => handlePlayTrack(item)} />}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
