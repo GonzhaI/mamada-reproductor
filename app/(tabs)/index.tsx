@@ -1,27 +1,36 @@
-import { useState } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors } from '@/theme/colors'
 import { CassetteBody } from '@/components/cassette/CassetteBody'
 import { Equalizer } from '@/components/cassette/Equalizer'
 import { Controls } from '@/components/Controls'
 import { ProgressBar } from '@/components/ProgressBar'
-
-// ─── Mock data — se reemplazará con datos reales en Fase 3/4 ───
-const mockTrack = {
-  title: 'BOHEMIAN RHAPSODY',
-  artist: 'QUEEN',
-  album: 'A NIGHT AT THE OPERA',
-  duration: 355,
-  currentTime: 87,
-  quality: 'Master',
-}
+import { usePlayer } from '@/hooks/usePlayer'
 
 export default function PlayerScreen() {
-  const [isPlaying, setIsPlaying] = useState(false)
+  const {
+    currentTrack,
+    isPlaying,
+    isLoaded,
+    position,
+    duration,
+    togglePlay,
+    next,
+    previous,
+  } = usePlayer()
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying)
+  if (!currentTrack) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.container}>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>⏏</Text>
+            <Text style={styles.emptyLabel}>NO TRACK SELECTED</Text>
+            <Text style={styles.emptyHint}>SEARCH OR BROWSE YOUR LIBRARY</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    )
   }
 
   return (
@@ -32,15 +41,21 @@ export default function PlayerScreen() {
           <Text style={styles.headerLabel}>
             {isPlaying ? '▶ NOW PLAYING' : '⏸ PAUSED'}
           </Text>
-          <Text style={styles.qualityBadge}>{mockTrack.quality}</Text>
+          {currentTrack.album?.coverUrl && (
+            <Image
+              source={{ uri: currentTrack.album.coverUrl }}
+              style={styles.coverThumb}
+            />
+          )}
         </View>
 
         {/* Cassette Area */}
         <View style={styles.cassetteContainer}>
           <CassetteBody
-            title={mockTrack.title}
-            artist={mockTrack.artist}
+            title={currentTrack.title.toUpperCase()}
+            artist={currentTrack.artists.map(a => a.name.toUpperCase()).join(', ')}
             isPlaying={isPlaying}
+            coverUrl={currentTrack.album?.coverUrl ?? undefined}
           />
         </View>
 
@@ -52,31 +67,30 @@ export default function PlayerScreen() {
         {/* Track Info */}
         <View style={styles.trackInfo}>
           <Text style={styles.trackTitle} numberOfLines={1}>
-            {mockTrack.title}
+            {currentTrack.title.toUpperCase()}
           </Text>
           <Text style={styles.trackArtist} numberOfLines={1}>
-            {mockTrack.artist}
+            {currentTrack.artists.map(a => a.name).join(', ')}
           </Text>
-          <Text style={styles.trackAlbum} numberOfLines={1}>
-            {mockTrack.album}
-          </Text>
+          {currentTrack.album && (
+            <Text style={styles.trackAlbum} numberOfLines={1}>
+              {currentTrack.album.title.toUpperCase()}
+            </Text>
+          )}
         </View>
 
         {/* Progress Section */}
         <View style={styles.progressContainer}>
-          <ProgressBar
-            currentTime={mockTrack.currentTime}
-            duration={mockTrack.duration}
-          />
+          <ProgressBar currentTime={position} duration={duration} />
         </View>
 
         {/* Controls Section */}
         <View style={styles.controlsContainer}>
           <Controls
             isPlaying={isPlaying}
-            onPlayPause={handlePlayPause}
-            onNext={() => console.log('Next')}
-            onPrevious={() => console.log('Prev')}
+            onPlayPause={togglePlay}
+            onNext={next}
+            onPrevious={previous}
           />
         </View>
       </View>
@@ -107,13 +121,11 @@ const styles = StyleSheet.create({
     color: colors.accent,
     letterSpacing: 1,
   },
-  qualityBadge: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 6,
-    color: colors.bg,
-    backgroundColor: colors.accent,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+  coverThumb: {
+    width: 36,
+    height: 36,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   cassetteContainer: {
     alignItems: 'center',
@@ -154,5 +166,27 @@ const styles = StyleSheet.create({
   },
   controlsContainer: {
     paddingBottom: 16,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    color: colors.border,
+  },
+  emptyLabel: {
+    fontFamily: 'PressStart2P_400Regular',
+    fontSize: 8,
+    color: colors.textMuted,
+    letterSpacing: 1,
+  },
+  emptyHint: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 14,
+    color: colors.textMuted,
+    letterSpacing: 1,
   },
 })

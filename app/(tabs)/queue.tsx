@@ -1,56 +1,61 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors } from '@/theme/colors'
+import { usePlayer } from '@/hooks/usePlayer'
 
-const mockQueue = [
-  { id: '1', title: 'BOHEMIAN RHAPSODY', artist: 'QUEEN',        duration: '5:55', isActive: true  },
-  { id: '2', title: 'ANOTHER ONE BITES', artist: 'QUEEN',        duration: '3:34', isActive: false },
-  { id: '3', title: 'HOTEL CALIFORNIA',  artist: 'EAGLES',       duration: '6:30', isActive: false },
-  { id: '4', title: 'COMFORTABLY NUMB',  artist: 'PINK FLOYD',   duration: '6:22', isActive: false },
-  { id: '5', title: 'WISH YOU WERE HERE',artist: 'PINK FLOYD',   duration: '5:35', isActive: false },
-  { id: '6', title: 'STAIRWAY TO HEAVEN',artist: 'LED ZEPPELIN', duration: '8:02', isActive: false },
-]
-
-type QueueTrack = typeof mockQueue[number]
-
-function QueueRow({ item, index }: { item: QueueTrack; index: number }) {
-  return (
-    <TouchableOpacity
-      style={[styles.row, item.isActive && styles.rowActive]}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.rowIndex, item.isActive && styles.rowIndexActive]}>
-        {item.isActive ? '▶' : String(index + 1).padStart(2, '0')}
-      </Text>
-      <View style={styles.rowInfo}>
-        <Text style={[styles.rowTitle, item.isActive && styles.rowTitleActive]} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={styles.rowArtist}>{item.artist}</Text>
-      </View>
-      <Text style={styles.rowDuration}>{item.duration}</Text>
-    </TouchableOpacity>
-  )
+function formatDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = Math.floor(totalSeconds % 60)
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
 
 export default function QueueScreen() {
+  const { queue, queueIndex, jumpToIndex, currentTrack } = usePlayer()
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>QUEUE</Text>
           <View style={styles.headerLine} />
-          <Text style={styles.headerSub}>{mockQueue.length} TRACKS</Text>
+          <Text style={styles.headerSub}>{queue.length} TRACKS</Text>
         </View>
 
-        <FlatList
-          data={mockQueue}
-          keyExtractor={item => item.id}
-          renderItem={({ item, index }) => <QueueRow item={item} index={index} />}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
+        {queue.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>◈</Text>
+            <Text style={styles.emptyText}>QUEUE IS EMPTY</Text>
+            <Text style={styles.emptyHint}>SEARCH OR BROWSE YOUR LIBRARY</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={queue}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
+            renderItem={({ item, index }) => (
+              <TouchableOpacity
+                style={[styles.row, index === queueIndex && styles.rowActive]}
+                activeOpacity={0.7}
+                onPress={() => jumpToIndex(index)}
+              >
+                <Text style={[styles.rowIndex, index === queueIndex && styles.rowIndexActive]}>
+                  {index === queueIndex ? '▶' : String(index + 1).padStart(2, '0')}
+                </Text>
+                <View style={styles.rowInfo}>
+                  <Text style={[styles.rowTitle, index === queueIndex && styles.rowTitleActive]} numberOfLines={1}>
+                    {item.title.toUpperCase()}
+                  </Text>
+                  <Text style={styles.rowArtist}>
+                    {item.artists.map(a => a.name).join(', ')}
+                  </Text>
+                </View>
+                <Text style={styles.rowDuration}>{formatDuration(item.durationSeconds)}</Text>
+              </TouchableOpacity>
+            )}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </View>
     </SafeAreaView>
   )
@@ -142,5 +147,28 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     opacity: 0.4,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    paddingBottom: 80,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    color: colors.border,
+  },
+  emptyText: {
+    fontFamily: 'PressStart2P_400Regular',
+    fontSize: 8,
+    color: colors.textMuted,
+    letterSpacing: 1,
+  },
+  emptyHint: {
+    fontFamily: 'VT323_400Regular',
+    fontSize: 14,
+    color: colors.textMuted,
+    letterSpacing: 1,
   },
 })

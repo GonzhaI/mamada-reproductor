@@ -1,21 +1,21 @@
 @AGENTS.md
 
-# CLAUDE.md — Reproductor Aesthetic Tidal
+# CLAUDE.md — Reproductor Aesthetic
 
 ## Descripción del proyecto
 
-Aplicación móvil multiplataforma (Android e iOS) de reproductor de música con estética **pixel-art retro vintage** en paleta tierra/marrón, integrada con la cuenta personal de Tidal del usuario vía el **TIDAL Developer Platform** (Web API + OAuth 2.1).
+Aplicación móvil multiplataforma (Android e iOS) de reproductor de música con estética **pixel-art retro vintage** en paleta tierra/marrón, alimentada por el catálogo Creative Commons de **Jamendo API** (v3.0).
 
-El proyecto busca replicar la sensación visual de un reproductor físico (tocadiscos o cassette) sobre la funcionalidad real de streaming de Tidal, ofreciendo una experiencia más cálida y personal que las apps oficiales.
+El proyecto replica la sensación visual de un reproductor físico (cassette retro con carretes animados y ecualizador) sobre streaming MP3 real, sin necesidad de cuentas ni OAuth.
 
 ---
 
 ## Objetivos
 
-- Reproducir música desde la biblioteca personal de Tidal del usuario
-- Mantener una UI pixel-art coherente con la referencia estética inicial
+- Reproducir música del catálogo de Jamendo (streaming directo, plan "Read only")
+- Mantener una UI pixel-art coherente (cassette + estética tocadiscos en evolución)
 - Funcionar en iOS y Android desde una sola base de código
-- Permitir desarrollo y testing sin costos iniciales
+- Entrar directo a la app: sin login, sin gate de autenticación
 
 ---
 
@@ -23,33 +23,26 @@ El proyecto busca replicar la sensación visual de un reproductor físico (tocad
 
 ### Dentro del alcance (v1)
 
-**Autenticación**
-- Login del usuario con su propia cuenta Tidal (OAuth 2.1, Authorization Code flow)
-- Almacenamiento seguro del refresh token
-- Logout
-
 **Reproducción**
 - Play / pause / siguiente / anterior
 - Barra de progreso con tiempo actual y duración
+- Cola de reproducción con auto-advance
 - Reproducción en primer plano (background play queda para v2)
 
 **Biblioteca**
-- Lectura de playlists del usuario
-- Lectura de tracks favoritos
-- Búsqueda básica de canciones
+- "LOFI SELECT" curado (tags=lofi, top por artista)
+- Playlists por género (lofi, chillout, study, jazz)
+- Búsqueda libre de canciones (debounce 300ms)
 
 **Metadatos visibles en UI**
-- Título de la canción
-- Artista
-- Carátula del álbum
-- Calidad de audio del track actual (Normal / High / HiFi / Master)
+- Título, artista, álbum
+- Carátula real (campo `image`/`album_image` de Jamendo)
 
 **UI**
 - Diseño pixel-art en paleta tierra/marrón vintage
-- Variante seleccionada: **cassette retro** (caja oscura, etiqueta C-90 arena, carretes animados, ecualizador de barras)
+- Cassette retro: caja oscura, etiqueta C-90 arena, carretes animados, ecualizador
 - Tipografía pixel-art (Press Start 2P + VT323)
-- Animaciones de carretes girando y ecualizador reactivo durante reproducción
-- SVG escalable para distintas resoluciones de pantalla
+- SVG escalable (`react-native-svg`) + `react-native-reanimated`
 
 ### Fuera del alcance (v1)
 
@@ -57,9 +50,9 @@ El proyecto busca replicar la sensación visual de un reproductor físico (tocad
 - Reproducción en background con controles en pantalla bloqueada
 - Integración con CarPlay / Android Auto
 - Letras sincronizadas
-- Recomendaciones / radio / mixes generados
+- Recomendaciones personalizadas (Jamendo read-only no expone favoritos del usuario)
 - Compartir en redes sociales
-- Modo claro/oscuro (la estética es la estética)
+- Modo claro/oscuro
 - Publicación en App Store / Google Play (uso personal por ahora)
 
 ---
@@ -68,16 +61,15 @@ El proyecto busca replicar la sensación visual de un reproductor físico (tocad
 
 | Capa | Herramienta |
 |---|---|
-| Framework | React Native + Expo (managed workflow) |
+| Framework | React Native + Expo (SDK 54, managed workflow) |
 | Lenguaje | TypeScript |
-| Navegación | Expo Router (file-based, con tab bar inferior) |
+| Navegación | Expo Router (file-based, tab bar inferior custom) |
 | UI / gráficos | `react-native-svg` para los assets pixel-art |
 | Animaciones | `react-native-reanimated` (carretes, ecualizador, transiciones) |
 | Tipografía | `@expo-google-fonts/press-start-2p` y `@expo-google-fonts/vt323` |
 | Audio | `expo-av` (v1), migrar a `react-native-track-player` si se añade background play |
-| Autenticación | `expo-auth-session` para OAuth 2.1 con Tidal |
-| HTTP | `axios` para llamadas a Tidal Web API |
-| Almacenamiento seguro | `expo-secure-store` para tokens |
+| HTTP | `axios` para llamadas a Jamendo API |
+| Config | `.env` → `EXPO_PUBLIC_JAMENDO_CLIENT_ID` (público, no secreto) |
 | Testing en dispositivo | Expo Go (desarrollo) |
 | Build | EAS Build (cuando se necesite ejecutable) |
 
@@ -85,7 +77,7 @@ El proyecto busca replicar la sensación visual de un reproductor físico (tocad
 
 ## Estrategia de testing y distribución
 
-**Desarrollo diario:** Expo Go en iPhone y Android personal vía QR. Cero costo, recarga instantánea.
+**Desarrollo diario:** Expo Go en Android/iOS vía QR. Cero costo, recarga instantánea.
 
 **iOS — opciones gratuitas:**
 - Expo Go durante todo el desarrollo
@@ -96,47 +88,43 @@ El proyecto busca replicar la sensación visual de un reproductor físico (tocad
 - Expo Go en desarrollo
 - `eas build --platform android` genera `.apk` instalable directamente
 
-**Si eventualmente se publica:**
-- Google Play: 25 USD pago único
-- App Store: 99 USD/año (Apple Developer Program)
+---
+
+## Integración con Jamendo
+
+**Plataforma:** [devportal.jamendo.com](https://devportal.jamendo.com) — plan "Read only".
+
+**API:** `https://api.jamendo.com/v3.0`
+
+- Auth: solo `client_id` (público). Sin OAuth, sin tokens, sin secure store.
+- Streaming: `GET /tracks/?audioformat=mp32` → campo `audio` con la URL del MP3.
+- Búsqueda: `search=<texto>` (libre). Para géneros usar `tags=`/`fuzzytags=`.
+- Orden: `order=popularity_total_desc`, `boost=...`.
+
+**Endpoints usados en la app:**
+- `GET /tracks/` — search, curated lofi, playlists por género
+- ~~`/playlists/` y `/playlists/tracks/`~~ descartados: el listado público no trae cover/count y el endpoint de tracks dio timeouts.
+
+**Notas conocidas:**
+- `search=lofi` devuelve 0 resultados (relevancia no matchea tags); para lofi se usa `tags=lofi`.
+- `audiodownload_allowed` no aplica: la app solo streamea, no descarga.
+- Los streams `audio` vienen con token temporal (`from=...`).
 
 ---
 
-## Integración con Tidal
-
-**Plataforma:** [developer.tidal.com](https://developer.tidal.com) (actualmente en beta)
-
-**Recursos a usar:**
-- Web API (REST) — para todas las llamadas de datos
-- Módulo Auth del TIDAL SDK Web — referencia para implementar OAuth en RN
-- OAuth 2.1 con Authorization Code flow + Refresh Token
-
-**Requisitos previos:**
-1. Registrar la app en el Dashboard de Tidal
-2. Obtener Client ID y Client Secret
-3. Configurar redirect URI compatible con `expo-auth-session`
-
-**Limitaciones conocidas:**
-- El usuario final debe tener su propia suscripción Tidal activa
-- La calidad de reproducción depende del tier del usuario (Normal / HiFi / HiFi Plus)
-- Se deben respetar los términos del TIDAL Developer Platform para cualquier distribución
-
----
-
-## Estructura propuesta del proyecto
+## Estructura del proyecto
 
 ```
-reproductor-tidal/
+mamada-reproductor/
 ├── app/                          # rutas (Expo Router)
-│   ├── _layout.tsx               # layout raíz con auth gate
-│   ├── login.tsx                 # OAuth login con Tidal
-│   └── (tabs)/                   # navegación principal con tab bar
+│   ├── _layout.tsx               # PlayerProvider + Stack (sin auth)
+│   └── (tabs)/
 │       ├── _layout.tsx           # tab bar estilizada pixel-art
-│       ├── index.tsx             # Player (pantalla principal)
-│       ├── library.tsx           # playlists y favoritos
+│       ├── index.tsx             # Player (cassette + controls)
+│       ├── library.tsx           # LOFI SELECT + playlists por género
 │       ├── search.tsx            # búsqueda
 │       ├── queue.tsx             # cola de reproducción
-│       └── settings.tsx          # cuenta, calidad, logout
+│       └── settings.tsx          # fuente Jamendo, versión
 ├── components/
 │   ├── cassette/
 │   │   ├── CassetteBody.tsx      # SVG estático de la caja
@@ -146,12 +134,13 @@ reproductor-tidal/
 │   ├── ProgressBar.tsx           # barra animada
 │   └── TabBar.tsx                # tab bar custom pixel-art
 ├── services/
-│   ├── tidalAuth.ts              # OAuth 2.1 flow
-│   ├── tidalApi.ts               # wrappers de Web API
-│   └── player.ts                 # control de expo-av
+│   ├── types.ts                  # Track / Artist / Album / Playlist (neutrales)
+│   ├── jamendoApi.ts             # cliente axios + mapeo
+│   └── player.ts                 # wrapper de expo-av
 ├── hooks/
-│   ├── useAuth.ts
-│   ├── usePlayer.ts
+│   ├── usePlayer.tsx             # contexto global del player
+│   ├── useSearch.ts              # búsqueda con debounce
+│   ├── useLibrary.ts             # curated + playlists
 │   └── useFonts.ts               # carga de Press Start 2P + VT323
 ├── theme/
 │   ├── colors.ts                 # paleta tierra/marrón
@@ -163,65 +152,37 @@ reproductor-tidal/
 
 ## Roadmap
 
-**Fase 0 — Setup**
-- Crear proyecto Expo + TypeScript
-- Registrar app en Tidal Developer Dashboard
-- Configurar variables de entorno (Client ID/Secret)
-
-**Fase 1 — Auth**
-- Implementar OAuth 2.1 con `expo-auth-session`
-- Guardar tokens en `expo-secure-store`
-- Pantalla de login y logout
-
-**Fase 2 — UI estática**
-- Portar el SVG pixel-art elegido a `react-native-svg`
-- Estructurar componentes (artwork, controles, progress bar)
-- Conectar datos mock para validar layout
-
-**Fase 3 — Datos reales de Tidal**
-- Wrappers de Web API (tracks, playlists, favoritos)
-- Mostrar metadatos reales (título, artista, carátula, calidad)
-
-**Fase 4 — Reproducción**
-- Integrar `expo-av` con stream de Tidal
-- Conectar controles a estado de reproducción
-- Barra de progreso animada
-
-**Fase 5 — Build**
-- `eas build` para Android (`.apk` personal)
-- Decisión sobre iOS (Personal Team / Apple Developer / quedarse en Expo Go)
+**Fase 0 — Setup** ✅
+**Fase 1 — Auth OAuth Tidal** ❌ eliminado (login roto) → reemplazado por login directo
+**Fase 2 — UI estática** ✅ cassette pixel-art + navegación
+**Fase 3 — Datos reales (Tidal)** ❌ eliminado → Fase 6 (Jamendo)
+**Fase 4 — Reproducción** ✅ expo-av + cola + auto-advance
+**Fase 4.5 — Modo invitado** ✅ (funcionó) → eliminado en Fase 6
+**Fase 5 — Build** 🔄 dev APK listo, falta preview/production
+**Fase 6 — Jamendo API** ✅ código listo, falta prueba manual en device
+**Próximo — Rediseño estético** 🔄 basado en cupid-music-player (tocadiscos pixel-art):
+- Vinilo girando + aguja sobre el artwork
+- Marquee scroll para títulos largos
+- Progress bar arrastrable
+- Tema con persistencia
+- Micro-interacciones (presión de botones, transiciones)
 
 ---
 
 ## Decisiones de diseño
 
 ### Variante de UI
-**Cassette retro** en paleta tierra/marrón vintage. Caja oscura con etiqueta C-90 arena, dos carretes visibles, ecualizador de barras en la parte inferior, controles tipo botón físico.
+**Cassette retro** en paleta tierra/marrón vintage: caja oscura, etiqueta C-90 arena, dos carretes animados, ecualizador de barras, controles tipo botón físico. En evaluación: fusión con estética tocadiscos (vinilo + aguja).
 
 ### Navegación
-Navegación entre múltiples pantallas usando **Expo Router** con tab bar inferior (estilizada acorde a la estética pixel-art):
-
-- **Player** — pantalla principal con el cassette
-- **Library** — playlists y favoritos del usuario
-- **Search** — búsqueda de canciones, álbumes y artistas
-- **Queue** — cola de reproducción actual
-- **Settings** — cuenta Tidal, calidad de audio, logout
+Tab bar inferior pixel-art con 5 pantallas: **Player**, **Library**, **Search**, **Queue**, **Settings**. Sin login: la app abre directo en Player.
 
 ### Tipografía
-Fuente **pixel-art / bitmap** para toda la app. Opciones recomendadas:
-- **Press Start 2P** (Google Fonts) — muy marcada, ideal para títulos cortos
-- **VT323** (Google Fonts) — estilo terminal retro, mejor para textos largos
-- **Silkscreen** (Google Fonts) — limpia y legible
-- Combinación sugerida: `Press Start 2P` para títulos y nombres de canción, `VT323` para descripciones, metadata y textos largos
-
-Carga vía `expo-font` o `@expo-google-fonts/press-start-2p`.
+- **Press Start 2P** — títulos y nombres de canción (corto)
+- **VT323** — descripciones, metadata y textos largos (terminal retro)
 
 ### Animaciones
-Animaciones activas durante reproducción usando **`react-native-reanimated`**:
-
-- **Carretes del cassette** — rotación continua mientras hay reproducción, pausa al pausar la canción. Velocidad ligeramente distinta entre ambos carretes para simular el avance real de la cinta
-- **Ecualizador de barras** — barras animadas reaccionando al ritmo (puede ser aleatorio sincronizado al tempo, o reactivo al audio real si la API lo permite)
-- **Barra de progreso** — animación suave del avance
-- **Botón de play/pause** — transición animada del ícono
-- **Transiciones entre pantallas** — fade/slide acorde a la estética retro
-- **Carga de carátula** — efecto de aparición pixelado (opcional, nice-to-have)
+- Carretes del cassette: rotación continua en reproducción, pausa al pausar (velocidad distinta entre carretes)
+- Ecualizador de barras animado mientras hay reproducción
+- Barra de progreso suave
+- Transiciones entre pantallas acordes a la estética retro (fase de rediseño)

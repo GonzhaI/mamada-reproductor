@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   View,
   Text,
@@ -6,47 +5,57 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSearch } from '@/hooks/useSearch'
+import { usePlayer } from '@/hooks/usePlayer'
+import type { Track } from '@/services/types'
 import { colors } from '@/theme/colors'
 
-const mockResults = [
-  { id: '1', title: 'BOHEMIAN RHAPSODY', artist: 'QUEEN',          duration: '5:55', quality: 'Master' },
-  { id: '2', title: 'HOTEL CALIFORNIA',  artist: 'EAGLES',         duration: '6:30', quality: 'HiFi'   },
-  { id: '3', title: 'STAIRWAY TO HEAVEN',artist: 'LED ZEPPELIN',   duration: '8:02', quality: 'HiFi'   },
-  { id: '4', title: 'COMFORTABLY NUMB',  artist: 'PINK FLOYD',     duration: '6:22', quality: 'Master' },
-  { id: '5', title: 'WISH YOU WERE HERE',artist: 'PINK FLOYD',     duration: '5:35', quality: 'HiFi'   },
-]
-
-type TrackResult = typeof mockResults[number]
-
 const QUALITY_COLORS: Record<string, string> = {
-  Master: colors.accent,
-  HiFi:   colors.label,
-  High:   colors.textMuted,
-  Normal: colors.border,
+  LOSSLESS: colors.accent,
+  HIGH: colors.label,
+  LOW: colors.textMuted,
 }
 
-function TrackRow({ item }: { item: TrackResult }) {
+const QUALITY_LABELS: Record<string, string> = {
+  LOSSLESS: 'HIFI',
+  HIGH: 'MP3',
+  LOW: 'MP3',
+}
+
+function formatDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
+
+function TrackRow({ item, onPress }: { item: Track; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.trackRow} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.trackRow} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.trackInfo}>
-        <Text style={styles.trackTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.trackArtist}>{item.artist}</Text>
+        <Text style={styles.trackTitle} numberOfLines={1}>{item.title.toUpperCase()}</Text>
+        <Text style={styles.trackArtist}>{item.artists.map(a => a.name).join(', ')}</Text>
       </View>
       <View style={styles.trackMeta}>
         <Text style={[styles.qualityTag, { color: QUALITY_COLORS[item.quality] ?? colors.textMuted }]}>
-          {item.quality.toUpperCase()}
+          {QUALITY_LABELS[item.quality] ?? item.quality}
         </Text>
-        <Text style={styles.duration}>{item.duration}</Text>
+        <Text style={styles.duration}>{formatDuration(item.durationSeconds)}</Text>
       </View>
     </TouchableOpacity>
   )
 }
 
 export default function SearchScreen() {
-  const [query, setQuery] = useState('')
+  const { query, setQuery, results, loading, error } = useSearch()
+  const { playTrack } = usePlayer()
   const showResults = query.length > 0
+
+  const handlePlayTrack = (track: Track) => {
+    playTrack(track, results)
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -75,14 +84,27 @@ export default function SearchScreen() {
         </View>
 
         {/* Results / empty state */}
-        {showResults ? (
+        {showResults && loading ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator color={colors.accent} />
+          </View>
+        ) : showResults && error ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>{error}</Text>
+          </View>
+        ) : showResults ? (
           <FlatList
-            data={mockResults}
+            data={results}
             keyExtractor={item => item.id}
-            renderItem={({ item }) => <TrackRow item={item} />}
+            renderItem={({ item }) => <TrackRow item={item} onPress={() => handlePlayTrack(item)} />}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>SIN RESULTADOS</Text>
+              </View>
+            }
           />
         ) : (
           <View style={styles.emptyState}>

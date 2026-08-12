@@ -1,38 +1,23 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useAuth } from '@/hooks/useAuth'
 import { colors } from '@/theme/colors'
-
-// Mock — pendiente reemplazar con datos reales del perfil de Tidal
-const mockUser = {
-  name: 'GONZALO',
-  email: 'user@example.com',
-  tier: 'HiFi Plus',
-}
 
 type SettingsRowProps = {
   label: string
   value?: string
   accent?: boolean
-  onPress?: () => void
 }
 
-function SettingsRow({ label, value, accent, onPress }: SettingsRowProps) {
+function SettingsRow({ label, value, accent }: SettingsRowProps) {
   return (
-    <TouchableOpacity
-      style={styles.row}
-      activeOpacity={onPress ? 0.7 : 1}
-      onPress={onPress}
-    >
+    <View style={styles.row}>
       <Text style={[styles.rowLabel, accent && styles.rowLabelAccent]}>{label}</Text>
       {value != null && <Text style={styles.rowValue}>{value}</Text>}
-    </TouchableOpacity>
+    </View>
   )
 }
 
 export default function SettingsScreen() {
-  const { logout } = useAuth()
-
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -42,19 +27,19 @@ export default function SettingsScreen() {
           <View style={styles.headerLine} />
         </View>
 
-        {/* Account card */}
+        {/* Source card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>CUENTA TIDAL</Text>
+          <Text style={styles.cardTitle}>FUENTE DE MÚSICA</Text>
           <View style={styles.cardSeparator} />
           <View style={styles.accountInfo}>
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>{mockUser.name.charAt(0)}</Text>
+              <Text style={styles.avatarText}>♪</Text>
             </View>
             <View style={styles.accountText}>
-              <Text style={styles.accountName}>{mockUser.name}</Text>
-              <Text style={styles.accountEmail}>{mockUser.email}</Text>
+              <Text style={styles.accountName}>JAMENDO</Text>
+              <Text style={styles.accountEmail}>Catálogo Creative Commons · streaming directo</Text>
               <View style={styles.tierBadge}>
-                <Text style={styles.tierText}>{mockUser.tier.toUpperCase()}</Text>
+                <Text style={styles.tierText}>READ-ONLY</Text>
               </View>
             </View>
           </View>
@@ -62,30 +47,21 @@ export default function SettingsScreen() {
 
         {/* Audio quality card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>CALIDAD DE AUDIO</Text>
+          <Text style={styles.cardTitle}>REPRODUCCIÓN</Text>
           <View style={styles.cardSeparator} />
-          <SettingsRow label="STREAMING"   value="HiFi"   />
-          <View style={styles.rowSep} />
-          <SettingsRow label="DESCARGA"    value="Master" />
-          <View style={styles.rowSep} />
-          <SettingsRow label="NORMALIZAR VOLUMEN" value="ON" />
+          <SettingsRow label="STREAMING" value="MP3 VBR" />
         </View>
 
         {/* About card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>ACERCA DE</Text>
           <View style={styles.cardSeparator} />
-          <SettingsRow label="VERSIÓN"     value="0.1.0"   />
+          <SettingsRow label="VERSIÓN" value="0.2.0" />
           <View style={styles.rowSep} />
-          <SettingsRow label="BUILD"       value="DEV"     />
+          <SettingsRow label="BUILD" value="DEV" />
         </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={logout}>
-          <Text style={styles.logoutText}>⏏ CERRAR SESIÓN</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.footer}>MAMADA REPRODUCTOR · v0.1</Text>
+        <Text style={styles.footer}>MAMADA REPRODUCTOR · v0.2</Text>
 
       </ScrollView>
     </SafeAreaView>
@@ -137,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginBottom: 12,
   },
-  // Account
+  // Source
   accountInfo: {
     flexDirection: 'row',
     gap: 14,
@@ -208,20 +184,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     opacity: 0.4,
-  },
-  // Logout
-  logoutBtn: {
-    borderWidth: 2,
-    borderColor: '#8B3A3A',
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  logoutText: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 7,
-    color: '#C45A5A',
-    letterSpacing: 1,
   },
   footer: {
     fontFamily: 'VT323_400Regular',
