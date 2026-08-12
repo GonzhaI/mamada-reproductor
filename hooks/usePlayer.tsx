@@ -1,22 +1,24 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { getTrackStreamUrl, type TidalTrack } from '@/services/tidalApi'
+import { type Track } from '@/services/types'
 import { audioPlayer } from '@/services/player'
 import { Audio } from 'expo-av'
 
+const FALLBACK_AUDIO_URL = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+
 interface PlayerContextValue {
-  currentTrack: TidalTrack | null
-  queue: TidalTrack[]
+  currentTrack: Track | null
+  queue: Track[]
   queueIndex: number
   isPlaying: boolean
   position: number
   duration: number
   isLoaded: boolean
-  playTrack: (track: TidalTrack, queue?: TidalTrack[], startIndex?: number) => Promise<void>
+  playTrack: (track: Track, queue?: Track[], startIndex?: number) => Promise<void>
   togglePlay: () => Promise<void>
   seekTo: (seconds: number) => Promise<void>
   next: () => Promise<void>
   previous: () => Promise<void>
-  addToQueue: (track: TidalTrack) => void
+  addToQueue: (track: Track) => void
   removeFromQueue: (index: number) => void
   clearQueue: () => void
   jumpToIndex: (index: number) => Promise<void>
@@ -34,8 +36,8 @@ async function ensureAudioMode() {
 }
 
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
-  const [currentTrack, setCurrentTrack] = useState<TidalTrack | null>(null)
-  const [queue, setQueue] = useState<TidalTrack[]>([])
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
+  const [queue, setQueue] = useState<Track[]>([])
   const [queueIndex, setQueueIndex] = useState(-1)
   const [isPlaying, setIsPlaying] = useState(false)
   const [position, setPosition] = useState(0)
@@ -68,8 +70,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [queueIndex, queue])
 
   const playTrackInternal = useCallback(async (
-    track: TidalTrack,
-    newQueue?: TidalTrack[],
+    track: Track,
+    newQueue?: Track[],
     newIndex?: number
   ) => {
     if (loadingRef.current) return
@@ -86,8 +88,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       }
       setCurrentTrack(track)
 
-      const streamUrl = await getTrackStreamUrl(track.id)
-      await audioPlayer.loadTrack(streamUrl.url)
+      await audioPlayer.loadTrack(track.audio ?? FALLBACK_AUDIO_URL)
       await audioPlayer.play()
     } catch {
       setIsPlaying(false)
@@ -98,8 +99,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const playTrack = useCallback(async (
-    track: TidalTrack,
-    newQueue?: TidalTrack[],
+    track: Track,
+    newQueue?: Track[],
     startIndex?: number
   ) => {
     const q = newQueue ?? [track]
@@ -140,7 +141,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [queueIndex, queue, position, playAtIndex])
 
-  const addToQueue = useCallback((track: TidalTrack) => {
+  const addToQueue = useCallback((track: Track) => {
     setQueue(prev => [...prev, track])
   }, [])
 

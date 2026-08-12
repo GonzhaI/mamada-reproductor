@@ -305,6 +305,33 @@ Igual que con los endpoints de OAuth en la Fase 1, no pude verificar los paths d
 
 ---
 
+## FASE 6 — Migración a Jamendo API
+
+> Implementado 2026-08-12 en `feature/jamendo-api`. Se abandona Tidal por completo:
+> login OAuth roto + sin endpoint de streaming sin acuerdo partner. Jamendo da catálogo
+> CC y streaming MP3 real con solo un `client_id` público (plan "Read only", sin OAuth).
+
+### Cambios realizados ✅
+
+- [x] `services/types.ts` — tipos neutrales (`Track`, `Artist`, `Album`, `Playlist`) que reemplazan a los `Tidal*`. Campo `audio` con la URL de stream.
+- [x] `services/jamendoApi.ts` — axios sobre `https://api.jamendo.com/v3.0`:
+  - `searchTracks(q)` → `/tracks/?search=...&audioformat=mp32`
+  - `getCuratedTracks()` → lofi curado (tags=lofi, groupby artist, popularidad) = "LOFI SELECT" en Library
+  - `getPlaylists()` / `getPlaylistTracks(id)` → playlists por género (lofi, chillout, study, jazz)
+  - El endpoint público `/playlists/tracks/` se descartó: timeouts y las playlists públicas no traen cover/count.
+- [x] `hooks/usePlayer.tsx` — reproduce `track.audio` (SoundHelix solo como fallback si falta).
+- [x] `hooks/useSearch.ts` / `useLibrary.ts` — data real de Jamendo, sin modo invitado/demo.
+- [x] Login directo: se borraron `app/login.tsx`, `hooks/useAuth.tsx`, `services/tidalAuth.ts`, `services/tidalApi.ts`. `app/_layout.tsx` sin auth gate.
+- [x] `settings.tsx` — tarjeta "FUENTE DE MÚSICA: JAMENDO", sin cuenta Tidal ni logout.
+- [x] Limpieza de deps: `expo-auth-session`, `expo-secure-store`, `expo-web-browser`, `expo-application`, `expo-crypto` desinstalados; `expo-linking` reinstalado (peer de expo-router). Scheme `reproductor://` y plugins obsoletos removidos de `app.json`.
+- [x] `.env` / `.env.example` → `EXPO_PUBLIC_JAMENDO_CLIENT_ID`.
+- [x] Verificado: `npx tsc --noEmit` limpio + `expo export` sin errores.
+- [ ] Prueba manual en device/dev build: library real → buscar "lofi" → reproducir → pausar → siguiente.
+
+**Nota:** el `search=lofi` de Jamendo devuelve 0 resultados (búsqueda por relevancia no matchea el tag); la búsqueda libre sí responde con términos reales. Para lofi se usa el parámetro `tags`.
+
+---
+
 ## Calendario orientativo
 
 ```
@@ -338,10 +365,11 @@ git push origin feature/tu-rama
 | Fase | Responsable | Rama | Estado |
 |---|---|---|---|---|
 | 0 · Setup base | Gonzalo | `feature/setup-base` | ✅ Completado |
-| 1 · Auth OAuth | Gonzalo | `feature/auth-oauth` | ❌ Tidal login no funcional (error al redirigir) · reemplazado por modo invitado |
+| 1 · Auth OAuth | Gonzalo | `feature/auth-oauth` | ❌ Descartado (login Tidal roto) — eliminado en Fase 6 |
 | 2 · UI navegación | Amigo | `feature/ui-navigation` | ✅ Completado |
 | 2 · UI cassette | Amigo | `feature/ui-cassette` | ✅ Completado |
-| 3 · Tidal API | Gonzalo | `feature/tidal-api` | ❌ Sin acceso real a API de Tidal · reemplazado por mock data |
-| 4 · Player core + UI | Gonzalo | `feature/player-core` | ✅ Completado · streaming con SoundHelix URLs |
-| 4.5 · Modo invitado | Gonzalo | `main` | ✅ Completado · app funcional sin Tidal |
+| 3 · Tidal API | Gonzalo | `feature/tidal-api` | ❌ Descartado (sin acceso real) — eliminado en Fase 6 |
+| 4 · Player core + UI | Gonzalo | `feature/player-core` | ✅ Completado · streaming ahora por `track.audio` (Jamendo) |
+| 4.5 · Modo invitado | Gonzalo | `main` | ✅ Completado · eliminado en Fase 6 (login directo) |
 | 5 · Build | Ambos | `feature/build-config` | 🔄 En progreso · dev build listo, falta preview APK |
+| 6 · Jamendo API | Gonzalo | `feature/jamendo-api` | ✅ Completado (código) · falta prueba manual en device |

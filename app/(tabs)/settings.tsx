@@ -1,47 +1,23 @@
-import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useAuth } from '@/hooks/useAuth'
-import { getMe, type TidalUser } from '@/services/tidalApi'
 import { colors } from '@/theme/colors'
 
 type SettingsRowProps = {
   label: string
   value?: string
   accent?: boolean
-  onPress?: () => void
 }
 
-function SettingsRow({ label, value, accent, onPress }: SettingsRowProps) {
+function SettingsRow({ label, value, accent }: SettingsRowProps) {
   return (
-    <TouchableOpacity
-      style={styles.row}
-      activeOpacity={onPress ? 0.7 : 1}
-      onPress={onPress}
-    >
+    <View style={styles.row}>
       <Text style={[styles.rowLabel, accent && styles.rowLabelAccent]}>{label}</Text>
       {value != null && <Text style={styles.rowValue}>{value}</Text>}
-    </TouchableOpacity>
+    </View>
   )
 }
 
 export default function SettingsScreen() {
-  const { logout, status, isGuest } = useAuth()
-  const [user, setUser] = useState<TidalUser | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (isGuest) return
-    if (status !== 'signedIn') return
-    let cancelled = false
-    setLoading(true)
-    getMe()
-      .then(u => { if (!cancelled) setUser(u) })
-      .catch(() => { /* ignore */ })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [status, isGuest])
-
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -51,75 +27,39 @@ export default function SettingsScreen() {
           <View style={styles.headerLine} />
         </View>
 
-        {/* Account card */}
+        {/* Source card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>CUENTA TIDAL</Text>
+          <Text style={styles.cardTitle}>FUENTE DE MÚSICA</Text>
           <View style={styles.cardSeparator} />
-          {isGuest ? (
-            <View style={styles.accountInfo}>
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>?</Text>
-              </View>
-              <View style={styles.accountText}>
-                <Text style={styles.accountName}>MODO INVITADO</Text>
-                <Text style={styles.accountEmail}>Sin conexión a TIDAL</Text>
-                <View style={styles.tierBadge}>
-                  <Text style={styles.tierText}>DEMO</Text>
-                </View>
+          <View style={styles.accountInfo}>
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>♪</Text>
+            </View>
+            <View style={styles.accountText}>
+              <Text style={styles.accountName}>JAMENDO</Text>
+              <Text style={styles.accountEmail}>Catálogo Creative Commons · streaming directo</Text>
+              <View style={styles.tierBadge}>
+                <Text style={styles.tierText}>READ-ONLY</Text>
               </View>
             </View>
-          ) : loading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={colors.accent} />
-            </View>
-          ) : user ? (
-            <View style={styles.accountInfo}>
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>
-                  {(user.username ?? user.id ?? '?').charAt(0).toUpperCase()}
-                </Text>
-              </View>
-              <View style={styles.accountText}>
-                <Text style={styles.accountName}>{user.username?.toUpperCase() ?? 'TIDAL USER'}</Text>
-                <Text style={styles.accountEmail}>ID: {user.id}</Text>
-                {user.countryCode && (
-                  <View style={styles.tierBadge}>
-                    <Text style={styles.tierText}>{user.countryCode}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          ) : (
-            <View style={styles.loadingRow}>
-              <Text style={styles.errorText}>NO SE PUDO CARGAR</Text>
-            </View>
-          )}
+          </View>
         </View>
 
         {/* Audio quality card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>CALIDAD DE AUDIO</Text>
+          <Text style={styles.cardTitle}>REPRODUCCIÓN</Text>
           <View style={styles.cardSeparator} />
-          <SettingsRow label="STREAMING"   value="HiFi"   />
-          <View style={styles.rowSep} />
-          <SettingsRow label="DESCARGA"    value="Master" />
-          <View style={styles.rowSep} />
-          <SettingsRow label="NORMALIZAR VOLUMEN" value="ON" />
+          <SettingsRow label="STREAMING" value="MP3 VBR" />
         </View>
 
         {/* About card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>ACERCA DE</Text>
           <View style={styles.cardSeparator} />
-          <SettingsRow label="VERSIÓN"     value="0.1.0"   />
+          <SettingsRow label="VERSIÓN" value="0.2.0" />
           <View style={styles.rowSep} />
-          <SettingsRow label="BUILD"       value="DEV"     />
+          <SettingsRow label="BUILD" value="DEV" />
         </View>
-
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={logout}>
-          <Text style={styles.logoutText}>{isGuest ? '⏎ VOLVER AL INICIO' : '⏏ CERRAR SESIÓN'}</Text>
-        </TouchableOpacity>
 
         <Text style={styles.footer}>MAMADA REPRODUCTOR · v0.2</Text>
 
@@ -173,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginBottom: 12,
   },
-  // Account
+  // Source
   accountInfo: {
     flexDirection: 'row',
     gap: 14,
@@ -245,20 +185,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     opacity: 0.4,
   },
-  // Logout
-  logoutBtn: {
-    borderWidth: 2,
-    borderColor: '#8B3A3A',
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  logoutText: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 7,
-    color: '#C45A5A',
-    letterSpacing: 1,
-  },
   footer: {
     fontFamily: 'VT323_400Regular',
     fontSize: 12,
@@ -266,15 +192,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 1,
     opacity: 0.5,
-  },
-  loadingRow: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorText: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 14,
-    color: colors.textMuted,
   },
 })

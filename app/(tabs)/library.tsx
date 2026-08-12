@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator }
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLibrary } from '@/hooks/useLibrary'
 import { usePlayer } from '@/hooks/usePlayer'
-import { getPlaylistTracks } from '@/services/tidalApi'
+import { getPlaylistTracks } from '@/services/jamendoApi'
 import { colors } from '@/theme/colors'
 
 type PlaylistItem = {
@@ -51,7 +51,7 @@ export default function LibraryScreen() {
   }
 
   const items: PlaylistItem[] = [
-    { id: 'favorites', name: 'MIS FAVORITOS', count: favorites.length, type: 'favorites' },
+    { id: 'favorites', name: 'LOFI SELECT', count: favorites.length, type: 'favorites' },
     ...playlists.map(p => ({ id: p.id, name: p.name.toUpperCase(), count: p.trackCount, type: 'playlist' as const })),
   ]
 

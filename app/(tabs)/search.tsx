@@ -10,21 +10,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useSearch } from '@/hooks/useSearch'
 import { usePlayer } from '@/hooks/usePlayer'
-import type { TidalTrack } from '@/services/tidalApi'
+import type { Track } from '@/services/types'
 import { colors } from '@/theme/colors'
 
 const QUALITY_COLORS: Record<string, string> = {
-  HI_RES_LOSSLESS: colors.accent,
-  LOSSLESS: colors.label,
-  HIGH: colors.textMuted,
-  LOW: colors.border,
+  LOSSLESS: colors.accent,
+  HIGH: colors.label,
+  LOW: colors.textMuted,
 }
 
 const QUALITY_LABELS: Record<string, string> = {
-  HI_RES_LOSSLESS: 'MASTER',
   LOSSLESS: 'HIFI',
-  HIGH: 'HIGH',
-  LOW: 'NORMAL',
+  HIGH: 'MP3',
+  LOW: 'MP3',
 }
 
 function formatDuration(totalSeconds: number): string {
@@ -33,7 +31,7 @@ function formatDuration(totalSeconds: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
 
-function TrackRow({ item, onPress }: { item: TidalTrack; onPress: () => void }) {
+function TrackRow({ item, onPress }: { item: Track; onPress: () => void }) {
   return (
     <TouchableOpacity style={styles.trackRow} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.trackInfo}>
@@ -55,7 +53,7 @@ export default function SearchScreen() {
   const { playTrack } = usePlayer()
   const showResults = query.length > 0
 
-  const handlePlayTrack = (track: TidalTrack) => {
+  const handlePlayTrack = (track: Track) => {
     playTrack(track, results)
   }
 
