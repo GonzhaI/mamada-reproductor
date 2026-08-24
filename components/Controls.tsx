@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { StyleSheet, View, TouchableOpacity, Text } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -5,7 +6,8 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
-import { colors } from '@/theme/colors'
+import { useTheme } from '@/hooks/useTheme'
+import type { ThemeColors } from '@/theme/themes'
 
 interface ControlsProps {
   isPlaying: boolean
@@ -25,6 +27,8 @@ function ControlButton({
   isPlayBtn?: boolean
   isActive?: boolean
 }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const scale = useSharedValue(1)
   const translateY = useSharedValue(0)
 
@@ -80,6 +84,9 @@ export function Controls({
   onNext,
   onPrevious,
 }: ControlsProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
+
   return (
     <View style={styles.container}>
       <ControlButton icon="⏮" onPress={onPrevious} />
@@ -94,49 +101,50 @@ export function Controls({
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 24,
-  },
-  btn: {
-    width: 56,
-    height: 56,
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
-  },
-  btnPlay: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.surfaceAlt,
-    borderColor: colors.accent,
-  },
-  btnActive: {
-    backgroundColor: colors.surface,
-    borderColor: colors.accent,
-    shadowOffset: { width: 0, height: 1 }, // Pressed state shadow
-  },
-  icon: {
-    fontSize: 24,
-    color: colors.text,
-  },
-  iconPlay: {
-    fontSize: 32,
-    color: colors.accent,
-  },
-  iconActive: {
-    color: colors.accent,
-  },
-})
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 24,
+    },
+    btn: {
+      width: 56,
+      height: 56,
+      backgroundColor: colors.surface,
+      borderWidth: 2,
+      borderColor: colors.border,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+      elevation: 4,
+    },
+    btnPlay: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.surfaceAlt,
+      borderColor: colors.accent,
+    },
+    btnActive: {
+      backgroundColor: colors.surface,
+      borderColor: colors.accent,
+      shadowOffset: { width: 0, height: 1 }, // Pressed state shadow
+    },
+    icon: {
+      fontSize: 24,
+      color: colors.text,
+    },
+    iconPlay: {
+      fontSize: 32,
+      color: colors.accent,
+    },
+    iconActive: {
+      color: colors.accent,
+    },
+  })

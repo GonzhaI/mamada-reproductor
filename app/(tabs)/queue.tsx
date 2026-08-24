@@ -1,7 +1,9 @@
+import { useMemo } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors } from '@/theme/colors'
 import { usePlayer } from '@/hooks/usePlayer'
+import { useTheme } from '@/hooks/useTheme'
+import type { ThemeColors } from '@/theme/themes'
 
 function formatDuration(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60)
@@ -10,6 +12,8 @@ function formatDuration(totalSeconds: number): string {
 }
 
 export default function QueueScreen() {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const { queue, queueIndex, jumpToIndex, currentTrack } = usePlayer()
 
   return (
@@ -61,114 +65,115 @@ export default function QueueScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  header: {
-    marginBottom: 20,
-    gap: 6,
-  },
-  headerTitle: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 10,
-    color: colors.text,
-    letterSpacing: 2,
-  },
-  headerLine: {
-    height: 2,
-    backgroundColor: colors.accent,
-    width: 40,
-  },
-  headerSub: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 14,
-    color: colors.textMuted,
-    letterSpacing: 1,
-  },
-  list: {
-    paddingBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    gap: 12,
-  },
-  rowActive: {
-    backgroundColor: colors.surface,
-    marginHorizontal: -8,
-    paddingHorizontal: 8,
-    borderLeftWidth: 2,
-    borderLeftColor: colors.accent,
-  },
-  rowIndex: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 16,
-    color: colors.textMuted,
-    width: 24,
-    textAlign: 'center',
-  },
-  rowIndexActive: {
-    color: colors.accent,
-    fontSize: 14,
-  },
-  rowInfo: {
-    flex: 1,
-    gap: 3,
-  },
-  rowTitle: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 6,
-    color: colors.text,
-    letterSpacing: 0.3,
-  },
-  rowTitleActive: {
-    color: colors.accent,
-  },
-  rowArtist: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 14,
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-  },
-  rowDuration: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.border,
-    opacity: 0.4,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    paddingBottom: 80,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    color: colors.border,
-  },
-  emptyText: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 8,
-    color: colors.textMuted,
-    letterSpacing: 1,
-  },
-  emptyHint: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 14,
-    color: colors.textMuted,
-    letterSpacing: 1,
-  },
-})
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    container: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    header: {
+      marginBottom: 20,
+      gap: 6,
+    },
+    headerTitle: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 10,
+      color: colors.text,
+      letterSpacing: 2,
+    },
+    headerLine: {
+      height: 2,
+      backgroundColor: colors.accent,
+      width: 40,
+    },
+    headerSub: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 14,
+      color: colors.textMuted,
+      letterSpacing: 1,
+    },
+    list: {
+      paddingBottom: 16,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      gap: 12,
+    },
+    rowActive: {
+      backgroundColor: colors.surface,
+      marginHorizontal: -8,
+      paddingHorizontal: 8,
+      borderLeftWidth: 2,
+      borderLeftColor: colors.accent,
+    },
+    rowIndex: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 16,
+      color: colors.textMuted,
+      width: 24,
+      textAlign: 'center',
+    },
+    rowIndexActive: {
+      color: colors.accent,
+      fontSize: 14,
+    },
+    rowInfo: {
+      flex: 1,
+      gap: 3,
+    },
+    rowTitle: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 6,
+      color: colors.text,
+      letterSpacing: 0.3,
+    },
+    rowTitleActive: {
+      color: colors.accent,
+    },
+    rowArtist: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 14,
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+    },
+    rowDuration: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    separator: {
+      height: 1,
+      backgroundColor: colors.border,
+      opacity: 0.4,
+    },
+    emptyState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 16,
+      paddingBottom: 80,
+    },
+    emptyIcon: {
+      fontSize: 48,
+      color: colors.border,
+    },
+    emptyText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 8,
+      color: colors.textMuted,
+      letterSpacing: 1,
+    },
+    emptyHint: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 14,
+      color: colors.textMuted,
+      letterSpacing: 1,
+    },
+  })

@@ -1,13 +1,18 @@
+import { useMemo } from 'react'
 import { View, Text, StyleSheet, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors } from '@/theme/colors'
+import { useTheme } from '@/hooks/useTheme'
+import type { ThemeColors } from '@/theme/themes'
 import { CassetteBody } from '@/components/cassette/CassetteBody'
 import { Equalizer } from '@/components/cassette/Equalizer'
 import { Controls } from '@/components/Controls'
 import { ProgressBar } from '@/components/ProgressBar'
+import { MarqueeText } from '@/components/MarqueeText'
 import { usePlayer } from '@/hooks/usePlayer'
 
 export default function PlayerScreen() {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const {
     currentTrack,
     isPlaying,
@@ -15,6 +20,7 @@ export default function PlayerScreen() {
     position,
     duration,
     togglePlay,
+    seekTo,
     next,
     previous,
   } = usePlayer()
@@ -66,9 +72,9 @@ export default function PlayerScreen() {
 
         {/* Track Info */}
         <View style={styles.trackInfo}>
-          <Text style={styles.trackTitle} numberOfLines={1}>
+          <MarqueeText style={styles.trackTitle}>
             {currentTrack.title.toUpperCase()}
-          </Text>
+          </MarqueeText>
           <Text style={styles.trackArtist} numberOfLines={1}>
             {currentTrack.artists.map(a => a.name).join(', ')}
           </Text>
@@ -81,7 +87,7 @@ export default function PlayerScreen() {
 
         {/* Progress Section */}
         <View style={styles.progressContainer}>
-          <ProgressBar currentTime={position} duration={duration} />
+          <ProgressBar currentTime={position} duration={duration} onSeek={seekTo} />
         </View>
 
         {/* Controls Section */}
@@ -98,95 +104,96 @@ export default function PlayerScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-    justifyContent: 'space-between',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerLabel: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 7,
-    color: colors.accent,
-    letterSpacing: 1,
-  },
-  coverThumb: {
-    width: 36,
-    height: 36,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cassetteContainer: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  eqContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  trackInfo: {
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 24,
-  },
-  trackTitle: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 10,
-    color: colors.text,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-    lineHeight: 16,
-  },
-  trackArtist: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 24,
-    color: colors.accent,
-    textAlign: 'center',
-    letterSpacing: 1,
-  },
-  trackAlbum: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 18,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-  progressContainer: {
-    marginBottom: 24,
-  },
-  controlsContainer: {
-    paddingBottom: 16,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    color: colors.border,
-  },
-  emptyLabel: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 8,
-    color: colors.textMuted,
-    letterSpacing: 1,
-  },
-  emptyHint: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 14,
-    color: colors.textMuted,
-    letterSpacing: 1,
-  },
-})
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    container: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 24,
+      justifyContent: 'space-between',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    headerLabel: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.accent,
+      letterSpacing: 1,
+    },
+    coverThumb: {
+      width: 36,
+      height: 36,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    cassetteContainer: {
+      alignItems: 'center',
+      marginVertical: 16,
+    },
+    eqContainer: {
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    trackInfo: {
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 24,
+    },
+    trackTitle: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 10,
+      color: colors.text,
+      textAlign: 'center',
+      letterSpacing: 0.5,
+      lineHeight: 16,
+    },
+    trackArtist: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 24,
+      color: colors.accent,
+      textAlign: 'center',
+      letterSpacing: 1,
+    },
+    trackAlbum: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 18,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    progressContainer: {
+      marginBottom: 24,
+    },
+    controlsContainer: {
+      paddingBottom: 16,
+    },
+    emptyState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 16,
+    },
+    emptyIcon: {
+      fontSize: 48,
+      color: colors.border,
+    },
+    emptyLabel: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 8,
+      color: colors.textMuted,
+      letterSpacing: 1,
+    },
+    emptyHint: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 14,
+      color: colors.textMuted,
+      letterSpacing: 1,
+    },
+  })

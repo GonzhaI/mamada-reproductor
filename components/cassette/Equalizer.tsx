@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -9,14 +9,17 @@ import Animated, {
   Easing,
   cancelAnimation,
 } from 'react-native-reanimated'
-import { colors } from '@/theme/colors'
+import { useTheme } from '@/hooks/useTheme'
+import type { ThemeColors } from '@/theme/themes'
 
 interface EqualizerProps {
   isPlaying: boolean
   barCount?: number
 }
 
-function EqBar({ isPlaying, index, totalBars }: { isPlaying: boolean; index: number; totalBars: number }) {
+function EqBar({ isPlaying }: { isPlaying: boolean; index: number; totalBars: number }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const height = useSharedValue(4) // initial small height
 
   useEffect(() => {
@@ -55,6 +58,8 @@ function EqBar({ isPlaying, index, totalBars }: { isPlaying: boolean; index: num
 }
 
 export function Equalizer({ isPlaying, barCount = 10 }: EqualizerProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const bars = Array.from({ length: barCount }, (_, i) => i)
 
   return (
@@ -66,28 +71,29 @@ export function Equalizer({ isPlaying, barCount = 10 }: EqualizerProps) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: 4,
-    height: 30,
-    backgroundColor: colors.black,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: 4,
-  },
-  barContainer: {
-    width: 6,
-    height: '100%',
-    justifyContent: 'flex-end',
-  },
-  bar: {
-    width: '100%',
-    backgroundColor: colors.eqBar,
-    minHeight: 4,
-  },
-})
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      gap: 4,
+      height: 30,
+      backgroundColor: colors.black,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderWidth: 2,
+      borderColor: colors.border,
+      borderRadius: 4,
+    },
+    barContainer: {
+      width: 6,
+      height: '100%',
+      justifyContent: 'flex-end',
+    },
+    bar: {
+      width: '100%',
+      backgroundColor: colors.eqBar,
+      minHeight: 4,
+    },
+  })

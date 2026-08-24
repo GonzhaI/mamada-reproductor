@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -9,7 +9,8 @@ import Animated, {
   Easing,
   cancelAnimation,
 } from 'react-native-reanimated'
-import { colors } from '@/theme/colors'
+import { useTheme } from '@/hooks/useTheme'
+import type { ThemeColors } from '@/theme/themes'
 
 interface ReelProps {
   isPlaying: boolean
@@ -18,6 +19,8 @@ interface ReelProps {
 }
 
 export function Reel({ isPlaying, speed = 1, size = 48 }: ReelProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const rotation = useSharedValue(0)
 
   useEffect(() => {
@@ -59,60 +62,61 @@ export function Reel({ isPlaying, speed = 1, size = 48 }: ReelProps) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.tape,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  reel: {
-    backgroundColor: colors.reel,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  hubContainer: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
-  },
-  hub: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.border,
-  },
-  spokeHorizontal: {
-    position: 'absolute',
-    width: '100%',
-    height: 2,
-    backgroundColor: colors.tape,
-  },
-  spokeVertical: {
-    position: 'absolute',
-    width: 2,
-    height: '100%',
-    backgroundColor: colors.tape,
-  },
-  spokeDiagonal1: {
-    position: 'absolute',
-    width: '100%',
-    height: 2,
-    backgroundColor: colors.tape,
-    transform: [{ rotate: '45deg' }],
-  },
-  spokeDiagonal2: {
-    position: 'absolute',
-    width: '100%',
-    height: 2,
-    backgroundColor: colors.tape,
-    transform: [{ rotate: '-45deg' }],
-  },
-})
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: colors.tape,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    reel: {
+      backgroundColor: colors.reel,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    hubContainer: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: colors.black,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'absolute',
+    },
+    hub: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.border,
+    },
+    spokeHorizontal: {
+      position: 'absolute',
+      width: '100%',
+      height: 2,
+      backgroundColor: colors.tape,
+    },
+    spokeVertical: {
+      position: 'absolute',
+      width: 2,
+      height: '100%',
+      backgroundColor: colors.tape,
+    },
+    spokeDiagonal1: {
+      position: 'absolute',
+      width: '100%',
+      height: 2,
+      backgroundColor: colors.tape,
+      transform: [{ rotate: '45deg' }],
+    },
+    spokeDiagonal2: {
+      position: 'absolute',
+      width: '100%',
+      height: 2,
+      backgroundColor: colors.tape,
+      transform: [{ rotate: '-45deg' }],
+    },
+  })

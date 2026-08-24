@@ -1,6 +1,8 @@
+import { useMemo } from 'react'
 import { View, Text, StyleSheet, Image } from 'react-native'
 import { Reel } from './Reel'
-import { colors } from '@/theme/colors'
+import { useTheme } from '@/hooks/useTheme'
+import type { ThemeColors } from '@/theme/themes'
 
 interface CassetteBodyProps {
   title: string
@@ -10,6 +12,9 @@ interface CassetteBodyProps {
 }
 
 export function CassetteBody({ title, artist, isPlaying, coverUrl }: CassetteBodyProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
+
   return (
     <View style={styles.cassetteWrapper}>
       {/* Background/Base of Cassette */}
@@ -76,149 +81,150 @@ export function CassetteBody({ title, artist, isPlaying, coverUrl }: CassetteBod
   )
 }
 
-const styles = StyleSheet.create({
-  cassetteWrapper: {
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 340,
-    aspectRatio: 1.6, // Typical cassette ratio
-  },
-  cassetteBase: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    borderWidth: 3,
-    borderColor: colors.border,
-    padding: 12,
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  topDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  screw: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.black,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  labelArea: {
-    flex: 1,
-    backgroundColor: colors.label,
-    marginVertical: 8,
-    borderRadius: 6,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: colors.labelDark,
-  },
-  labelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  labelSide: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 12,
-    color: colors.bg,
-  },
-  labelStripes: {
-    flex: 1,
-    marginHorizontal: 16,
-    gap: 4,
-  },
-  stripe: {
-    height: 2,
-    backgroundColor: colors.labelDark,
-  },
-  labelTag: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 18,
-    color: colors.bg,
-    backgroundColor: colors.labelDark,
-    paddingHorizontal: 4,
-  },
-  trackInfo: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  coverRow: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  coverArt: {
-    width: 64,
-    height: 64,
-    borderWidth: 1,
-    borderColor: colors.labelDark,
-  },
-  title: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 10,
-    color: colors.bg,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  artist: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 18,
-    color: colors.surface,
-    textAlign: 'center',
-  },
-  windowCutout: {
-    flexDirection: 'row',
-    backgroundColor: colors.black,
-    borderRadius: 30,
-    padding: 4,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 2,
-    borderColor: colors.border,
-  },
-  reelContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  windowCenter: {
-    flex: 1,
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tapePath: {
-    width: '100%',
-    height: 20,
-    backgroundColor: colors.tape,
-    opacity: 0.8,
-  },
-  bottomArea: {
-    alignItems: 'center',
-  },
-  bottomShape: {
-    width: '70%',
-    height: 24,
-    backgroundColor: colors.surfaceAlt,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    borderWidth: 2,
-    borderBottomWidth: 0,
-    borderColor: colors.border,
-  },
-})
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    cassetteWrapper: {
+      alignItems: 'center',
+      width: '100%',
+      maxWidth: 340,
+      aspectRatio: 1.6, // Typical cassette ratio
+    },
+    cassetteBase: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 3,
+      borderColor: colors.border,
+      padding: 12,
+      justifyContent: 'space-between',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.5,
+      shadowRadius: 10,
+      elevation: 10,
+    },
+    topDetails: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+    },
+    screw: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.black,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    labelArea: {
+      flex: 1,
+      backgroundColor: colors.label,
+      marginVertical: 8,
+      borderRadius: 6,
+      padding: 8,
+      borderWidth: 1,
+      borderColor: colors.labelDark,
+    },
+    labelHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    labelSide: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 12,
+      color: colors.bg,
+    },
+    labelStripes: {
+      flex: 1,
+      marginHorizontal: 16,
+      gap: 4,
+    },
+    stripe: {
+      height: 2,
+      backgroundColor: colors.labelDark,
+    },
+    labelTag: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 18,
+      color: colors.bg,
+      backgroundColor: colors.labelDark,
+      paddingHorizontal: 4,
+    },
+    trackInfo: {
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    coverRow: {
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    coverArt: {
+      width: 64,
+      height: 64,
+      borderWidth: 1,
+      borderColor: colors.labelDark,
+    },
+    title: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 10,
+      color: colors.bg,
+      textAlign: 'center',
+      marginBottom: 4,
+    },
+    artist: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 18,
+      color: colors.surface,
+      textAlign: 'center',
+    },
+    windowCutout: {
+      flexDirection: 'row',
+      backgroundColor: colors.black,
+      borderRadius: 30,
+      padding: 4,
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderWidth: 2,
+      borderColor: colors.border,
+    },
+    reelContainer: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    windowCenter: {
+      flex: 1,
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tapePath: {
+      width: '100%',
+      height: 20,
+      backgroundColor: colors.tape,
+      opacity: 0.8,
+    },
+    bottomArea: {
+      alignItems: 'center',
+    },
+    bottomShape: {
+      width: '70%',
+      height: 24,
+      backgroundColor: colors.surfaceAlt,
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      borderWidth: 2,
+      borderBottomWidth: 0,
+      borderColor: colors.border,
+    },
+  })

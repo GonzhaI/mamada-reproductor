@@ -1,7 +1,9 @@
+import { useMemo } from 'react'
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { colors } from '@/theme/colors'
+import { useTheme } from '@/hooks/useTheme'
+import type { ThemeColors } from '@/theme/themes'
 
 const TAB_CONFIG = [
   { name: 'index',    label: 'PLAY',  icon: '▶' },
@@ -12,6 +14,8 @@ const TAB_CONFIG = [
 ]
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const insets = useSafeAreaInsets()
 
   return (
@@ -61,50 +65,51 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.border,
-    borderTopWidth: 2,
-  },
-  topBorder: {
-    height: 1,
-    backgroundColor: colors.accent,
-    opacity: 0.4,
-  },
-  tabRow: {
-    flexDirection: 'row',
-    height: 60,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    position: 'relative',
-  },
-  activeIndicator: {
-    position: 'absolute',
-    top: 0,
-    left: '20%',
-    right: '20%',
-    height: 2,
-    backgroundColor: colors.accent,
-  },
-  icon: {
-    fontSize: 16,
-    color: colors.textMuted,
-  },
-  iconActive: {
-    color: colors.accent,
-  },
-  label: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 5,
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-  },
-  labelActive: {
-    color: colors.accent,
-  },
-})
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: colors.surface,
+      borderTopColor: colors.border,
+      borderTopWidth: 2,
+    },
+    topBorder: {
+      height: 1,
+      backgroundColor: colors.accent,
+      opacity: 0.4,
+    },
+    tabRow: {
+      flexDirection: 'row',
+      height: 60,
+    },
+    tab: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+      position: 'relative',
+    },
+    activeIndicator: {
+      position: 'absolute',
+      top: 0,
+      left: '20%',
+      right: '20%',
+      height: 2,
+      backgroundColor: colors.accent,
+    },
+    icon: {
+      fontSize: 16,
+      color: colors.textMuted,
+    },
+    iconActive: {
+      color: colors.accent,
+    },
+    label: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 5,
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+    },
+    labelActive: {
+      color: colors.accent,
+    },
+  })

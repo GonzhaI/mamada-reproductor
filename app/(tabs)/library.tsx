@@ -1,9 +1,11 @@
+import { useMemo } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLibrary } from '@/hooks/useLibrary'
 import { usePlayer } from '@/hooks/usePlayer'
 import { getPlaylistTracks } from '@/services/jamendoApi'
-import { colors } from '@/theme/colors'
+import { useTheme } from '@/hooks/useTheme'
+import type { ThemeColors } from '@/theme/themes'
 
 type PlaylistItem = {
   id: string
@@ -13,6 +15,9 @@ type PlaylistItem = {
 }
 
 function PlaylistRow({ item, onPress }: { item: PlaylistItem; onPress: () => void }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
+
   return (
     <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.rowIcon}>
@@ -30,6 +35,8 @@ function PlaylistRow({ item, onPress }: { item: PlaylistItem; onPress: () => voi
 }
 
 export default function LibraryScreen() {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const { favorites, playlists, loading, error, refresh } = useLibrary()
   const { playTrack } = usePlayer()
 
@@ -96,102 +103,103 @@ export default function LibraryScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  header: {
-    marginBottom: 20,
-    gap: 8,
-  },
-  headerTitle: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 10,
-    color: colors.text,
-    letterSpacing: 2,
-  },
-  headerLine: {
-    height: 2,
-    backgroundColor: colors.accent,
-    width: 40,
-  },
-  list: {
-    paddingBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    gap: 12,
-  },
-  rowIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowIconText: {
-    fontSize: 18,
-    color: colors.accent,
-  },
-  rowInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  rowName: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 7,
-    color: colors.text,
-    letterSpacing: 0.5,
-  },
-  rowMeta: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 14,
-    color: colors.textMuted,
-    letterSpacing: 1,
-  },
-  rowArrow: {
-    fontSize: 10,
-    color: colors.textMuted,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.border,
-    opacity: 0.5,
-  },
-  centerState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    paddingBottom: 80,
-  },
-  errorText: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 16,
-    color: colors.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: 24,
-  },
-  retryBtn: {
-    borderWidth: 2,
-    borderColor: colors.accent,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  retryText: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 7,
-    color: colors.accent,
-    letterSpacing: 1,
-  },
-})
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    container: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    header: {
+      marginBottom: 20,
+      gap: 8,
+    },
+    headerTitle: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 10,
+      color: colors.text,
+      letterSpacing: 2,
+    },
+    headerLine: {
+      height: 2,
+      backgroundColor: colors.accent,
+      width: 40,
+    },
+    list: {
+      paddingBottom: 16,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      gap: 12,
+    },
+    rowIcon: {
+      width: 40,
+      height: 40,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowIconText: {
+      fontSize: 18,
+      color: colors.accent,
+    },
+    rowInfo: {
+      flex: 1,
+      gap: 4,
+    },
+    rowName: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.text,
+      letterSpacing: 0.5,
+    },
+    rowMeta: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 14,
+      color: colors.textMuted,
+      letterSpacing: 1,
+    },
+    rowArrow: {
+      fontSize: 10,
+      color: colors.textMuted,
+    },
+    separator: {
+      height: 1,
+      backgroundColor: colors.border,
+      opacity: 0.5,
+    },
+    centerState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 16,
+      paddingBottom: 80,
+    },
+    errorText: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 16,
+      color: colors.textMuted,
+      textAlign: 'center',
+      paddingHorizontal: 24,
+    },
+    retryBtn: {
+      borderWidth: 2,
+      borderColor: colors.accent,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+    },
+    retryText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.accent,
+      letterSpacing: 1,
+    },
+  })

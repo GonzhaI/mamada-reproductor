@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   View,
   Text,
@@ -10,14 +11,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useSearch } from '@/hooks/useSearch'
 import { usePlayer } from '@/hooks/usePlayer'
+import { useTheme } from '@/hooks/useTheme'
+import type { ThemeColors } from '@/theme/themes'
 import type { Track } from '@/services/types'
-import { colors } from '@/theme/colors'
-
-const QUALITY_COLORS: Record<string, string> = {
-  LOSSLESS: colors.accent,
-  HIGH: colors.label,
-  LOW: colors.textMuted,
-}
 
 const QUALITY_LABELS: Record<string, string> = {
   LOSSLESS: 'HIFI',
@@ -32,6 +28,14 @@ function formatDuration(totalSeconds: number): string {
 }
 
 function TrackRow({ item, onPress }: { item: Track; onPress: () => void }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
+  const qualityColors: Record<string, string> = {
+    LOSSLESS: colors.accent,
+    HIGH: colors.label,
+    LOW: colors.textMuted,
+  }
+
   return (
     <TouchableOpacity style={styles.trackRow} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.trackInfo}>
@@ -39,7 +43,7 @@ function TrackRow({ item, onPress }: { item: Track; onPress: () => void }) {
         <Text style={styles.trackArtist}>{item.artists.map(a => a.name).join(', ')}</Text>
       </View>
       <View style={styles.trackMeta}>
-        <Text style={[styles.qualityTag, { color: QUALITY_COLORS[item.quality] ?? colors.textMuted }]}>
+        <Text style={[styles.qualityTag, { color: qualityColors[item.quality] ?? colors.textMuted }]}>
           {QUALITY_LABELS[item.quality] ?? item.quality}
         </Text>
         <Text style={styles.duration}>{formatDuration(item.durationSeconds)}</Text>
@@ -49,6 +53,8 @@ function TrackRow({ item, onPress }: { item: Track; onPress: () => void }) {
 }
 
 export default function SearchScreen() {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const { query, setQuery, results, loading, error } = useSearch()
   const { playTrack } = usePlayer()
   const showResults = query.length > 0
@@ -117,118 +123,119 @@ export default function SearchScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  header: {
-    marginBottom: 20,
-    gap: 8,
-  },
-  headerTitle: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 10,
-    color: colors.text,
-    letterSpacing: 2,
-  },
-  headerLine: {
-    height: 2,
-    backgroundColor: colors.accent,
-    width: 40,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 10,
-    marginBottom: 20,
-  },
-  inputIcon: {
-    fontSize: 20,
-    color: colors.textMuted,
-  },
-  input: {
-    flex: 1,
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 7,
-    color: colors.text,
-    letterSpacing: 0.5,
-  },
-  clearBtn: {
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  list: {
-    paddingBottom: 16,
-  },
-  trackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    gap: 10,
-  },
-  trackInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  trackTitle: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 6,
-    color: colors.text,
-    letterSpacing: 0.3,
-  },
-  trackArtist: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 16,
-    color: colors.textMuted,
-    letterSpacing: 1,
-  },
-  trackMeta: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  qualityTag: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 5,
-    letterSpacing: 0.5,
-  },
-  duration: {
-    fontFamily: 'VT323_400Regular',
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.border,
-    opacity: 0.5,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    paddingBottom: 80,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    color: colors.border,
-  },
-  emptyText: {
-    fontFamily: 'PressStart2P_400Regular',
-    fontSize: 7,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 16,
-    letterSpacing: 0.5,
-  },
-})
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    container: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    header: {
+      marginBottom: 20,
+      gap: 8,
+    },
+    headerTitle: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 10,
+      color: colors.text,
+      letterSpacing: 2,
+    },
+    headerLine: {
+      height: 2,
+      backgroundColor: colors.accent,
+      width: 40,
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 2,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      gap: 10,
+      marginBottom: 20,
+    },
+    inputIcon: {
+      fontSize: 20,
+      color: colors.textMuted,
+    },
+    input: {
+      flex: 1,
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.text,
+      letterSpacing: 0.5,
+    },
+    clearBtn: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    list: {
+      paddingBottom: 16,
+    },
+    trackRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      gap: 10,
+    },
+    trackInfo: {
+      flex: 1,
+      gap: 4,
+    },
+    trackTitle: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 6,
+      color: colors.text,
+      letterSpacing: 0.3,
+    },
+    trackArtist: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 16,
+      color: colors.textMuted,
+      letterSpacing: 1,
+    },
+    trackMeta: {
+      alignItems: 'flex-end',
+      gap: 4,
+    },
+    qualityTag: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 5,
+      letterSpacing: 0.5,
+    },
+    duration: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    separator: {
+      height: 1,
+      backgroundColor: colors.border,
+      opacity: 0.5,
+    },
+    emptyState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 16,
+      paddingBottom: 80,
+    },
+    emptyIcon: {
+      fontSize: 48,
+      color: colors.border,
+    },
+    emptyText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 16,
+      letterSpacing: 0.5,
+    },
+  })
