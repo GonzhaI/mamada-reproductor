@@ -1,0 +1,15 @@
+{
+  "name": "mamada-reproductor-tauri",
+  "version": "1.0.0",
+  "description": "Tauri wrapper for mamada-reproductor",
+  "scripts": {
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

@@ -7,9 +7,11 @@ Expo SDK 54 · React Native 0.81 · React 19.1
 DO NOT use `App.tsx` or `index.ts` as entry — Expo Router manages that.
 
 ## Developer commands
-- `npm start` — dev server
+- `npm start` — dev server (Expo)
 - `npm run web` — desarrollo web (destino principal ahora)
 - `npm run android` / `npm run ios`
+- `npm run tauri:dev` — Tauri dev mode (desde `src-tauri/`)
+- `npm run tauri:build` — Build release `.exe`/`.msi` (desde `src-tauri/`)
 - No test/lint/typecheck scripts configurados. Verificación: `npx tsc --noEmit` + `npx expo export`
 
 ## Key config quirks
@@ -23,14 +25,20 @@ DO NOT use `App.tsx` or `index.ts` as entry — Expo Router manages that.
 ## Implementation status
 - **Fase 0-4 completadas.** Setup, UI cassette, Player (`expo-av` + cola + auto-advance).
 - **Fase 4.5 — Modo invitado.** Se eliminó al migrar a Jamendo (login directo, sin gate de auth).
-- **Fase 5 — Build.** Dev APK EAS listo. **Rumbo cambiado (2026-08-22):** no se hacen más builds Android/iOS; el destino final es un **ejecutable de escritorio para PC en ventana** — envolver la build web (`expo export --platform web`) con Tauri o Electron. Pendiente decidir cuál.
+- **Fase 5 — Build.** Dev APK EAS listo. **Rumbo cambiado (2026-08-22):** no se hacen más builds Android/iOS; el destino final es un **ejecutable de escritorio para PC en ventana** — envolver la build web (`expo export --platform web`) con **Tauri v2** (decisión 2026-08-24).
 - **Fase 6 — Jamendo (2026-08-12).** Se abandonó Tidal (login OAuth roto + sin streaming real sin acuerdo partner). Se adopta **Jamendo API**: catálogo CC, streaming MP3 real (`audioformat=mp32`), solo `client_id`, CORS ok → Android + Web. App 100% funcional: search/library/playlists con data real, login directo (sin pantalla de login), streaming por `track.audio`. SoundHelix queda como fallback solo si un track no trae `audio`.
-- **Sesión UI polish (2026-08-22, rama `feature/ui-polish`).** Temas completos, marquee y seek:
+- **Sesión UI polish (2026-08-22, rama `feature/ui-polish`).** Temas completos, marquee y seek — **MERGEADO A MAIN 2026-08-24**:
   - Sistema de temas: `theme/themes.ts` (tierra/arena/neon) + `hooks/useTheme.tsx` (provider con persistencia en AsyncStorage, selector en Settings). Todos los componentes/pantallas consumen `useTheme()` con patrón `createStyles(colors)` + `useMemo`. `theme/colors.ts` queda como re-export estático de `tierra` solo para módulos fuera del árbol React.
   - Marquee: `components/MarqueeText.tsx` — ticker seamless de 2 copias loop sobre `-50%`; títulos ≤26 chars quedan estáticos centrados (heurística por longitud, Press Start 2P es monoespaciada).
   - Seek: `ProgressBar` arrastrable con `Gesture.Pan` → `seekTo(segundos)`; `GestureHandlerRootView` montado en la raíz de `_layout.tsx` (requerido por gesture-handler).
   - Dep nueva: `@react-native-async-storage/async-storage`.
-  - Verificado: `npx tsc --noEmit` limpio + `expo export --platform web` OK. Falta prueba visual manual (`npm run web`).
+  - Verificado: `npx tsc --noEmit` limpio + `expo export --platform web` OK.
+- **Fase 7 — Tauri v2 Desktop Wrapper (2026-08-24, en progreso):**
+  - Objetivo: ejecutable `.exe`/`msi` para Windows (futuro: Linux/macOS) envolviendo `dist/` web.
+  - Tauri v2 elegido sobre Electron: binario ~5-15MB, WebView del sistema, Rust backend, mobile-ready.
+  - No compromete diseño: la web export es pixel-perfect, Tauri solo provee ventana nativa + APIs (fs, audio, updater).
+  - Pasos: `npm create tauri-app@latest` en subcarpeta → configurar `tauri.conf.json` → `cargo tauri build`.
+  - Audio: Jamendo MP3 via `<audio>`/Web Audio API en WebView — funciona nativo sin `expo-av`.
 
 ## Rumbo de diseño (prioridad alta)
 Se compensa el uso de una API genérica con una UI **excesivamente bonita, minimalista y llena de detalles**. Inspiración: `https://github.com/cupidbity/cupid-music-player` (tocadiscos pixel-art). Detalles a portar/estudiar:
@@ -64,3 +72,19 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
 - No remover `GestureHandlerRootView` de la raíz en `app/_layout.tsx` — sin él, el seek de la barra no funciona.
 - No instalar `expo-auth-session` / `expo-secure-store` / `expo-web-browser` a menos que se vuelva a necesitar OAuth: ya no hay auth, y `expo-linking` (peer de expo-router) se rompe si se prunan mal las deps.
 - `react-native-reanimated` ya no requiere el plugin con Worklets si usás el runtime nuevo — verificar babel.config.js antes de tocar.
+
+## Tauri v2 config (Fase 7)
+- Carpeta Tauri: `src-tauri/` (separada del proyecto Expo)
+- `tauri.conf.json` → `build.distDir: "../dist"` (apunta a `expo export --platform web`)
+- Ventana: título "Mamada Reproductor", tamaño 1000x700, min 800x600, icono `assets/icon.png`
+- Permisos: `fs:allow-read` (caché audio), `shell:allow-open` (links externos)
+- Audio: WebView usa codecs del SO (MP3 OK en Windows 10+ via WebView2)
+- No `expo-av` en Tauri — player web usa `<audio>` + Web Audio API (ya implementado en `services/player.ts` fallback)
+- Build: `cd src-tauri && cargo tauri build` → `src-tauri/target/release/bundle/msi/`
+- **Requisito previo**: Rust toolchain (`rustup install stable` → `cargo --version`)
+
+## Próximos pasos Fase 7
+1. Instalar Rust: `winget install Rustlang.Rust.GNU` o desde https://rustup.rs/
+2. `cd src-tauri && npm install @tauri-apps/cli@latest` (ya hecho)
+3. `npm run export:web` (genera `dist/`)
+4. `npm run tauri:build` → `.msi` en `src-tauri/target/release/bundle/msi/`
