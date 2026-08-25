@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { View, Text, StyleSheet, Image } from 'react-native'
+import { useMemo, useState } from 'react'
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
@@ -8,21 +8,26 @@ import { Equalizer } from '@/components/cassette/Equalizer'
 import { Controls } from '@/components/Controls'
 import { ProgressBar } from '@/components/ProgressBar'
 import { MarqueeText } from '@/components/MarqueeText'
+import { QueueList } from '@/components/QueueList'
+import { VolumeSlider } from '@/components/VolumeSlider'
 import { usePlayer } from '@/hooks/usePlayer'
 
 export default function PlayerScreen() {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
+  const [showQueue, setShowQueue] = useState(false)
   const {
     currentTrack,
     isPlaying,
     isLoaded,
     position,
     duration,
+    volume,
     togglePlay,
     seekTo,
     next,
     previous,
+    setVolume,
   } = usePlayer()
 
   if (!currentTrack) {
@@ -32,7 +37,7 @@ export default function PlayerScreen() {
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>⏏</Text>
             <Text style={styles.emptyLabel}>NO TRACK SELECTED</Text>
-            <Text style={styles.emptyHint}>SEARCH OR BROWSE YOUR LIBRARY</Text>
+            <Text style={styles.emptyHint}>PICK SOMETHING FROM MUSIC</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -47,43 +52,63 @@ export default function PlayerScreen() {
           <Text style={styles.headerLabel}>
             {isPlaying ? '▶ NOW PLAYING' : '⏸ PAUSED'}
           </Text>
-          {currentTrack.album?.coverUrl && (
-            <Image
-              source={{ uri: currentTrack.album.coverUrl }}
-              style={styles.coverThumb}
-            />
-          )}
+          <View style={styles.headerRight}>
+            <VolumeSlider value={volume} onChange={setVolume} compact />
+            <TouchableOpacity
+              style={[styles.queueBtn, showQueue && styles.queueBtnActive]}
+              onPress={() => setShowQueue(v => !v)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={[styles.queueBtnIcon, showQueue && styles.queueBtnIconActive]}>≡</Text>
+            </TouchableOpacity>
+            {currentTrack.album?.coverUrl && !showQueue && (
+              <Image
+                source={{ uri: currentTrack.album.coverUrl }}
+                style={styles.coverThumb}
+              />
+            )}
+          </View>
         </View>
 
-        {/* Cassette Area */}
-        <View style={styles.cassetteContainer}>
-          <CassetteBody
-            title={currentTrack.title.toUpperCase()}
-            artist={currentTrack.artists.map(a => a.name.toUpperCase()).join(', ')}
-            isPlaying={isPlaying}
-            coverUrl={currentTrack.album?.coverUrl ?? undefined}
-          />
-        </View>
+        {showQueue ? (
+          /* Queue View */
+          <View style={styles.queueContainer}>
+            <QueueList />
+          </View>
+        ) : (
+          <>
+            {/* Cassette Area */}
+            <View style={styles.cassetteContainer}>
+              <CassetteBody
+                title={currentTrack.title.toUpperCase()}
+                artist={currentTrack.artists.map(a => a.name.toUpperCase()).join(', ')}
+                isPlaying={isPlaying}
+                coverUrl={currentTrack.album?.coverUrl ?? undefined}
+              />
+            </View>
 
-        {/* Equalizer */}
-        <View style={styles.eqContainer}>
-          <Equalizer isPlaying={isPlaying} barCount={12} />
-        </View>
+            {/* Equalizer */}
+            <View style={styles.eqContainer}>
+              <Equalizer isPlaying={isPlaying} barCount={12} />
+            </View>
 
-        {/* Track Info */}
-        <View style={styles.trackInfo}>
-          <MarqueeText style={styles.trackTitle}>
-            {currentTrack.title.toUpperCase()}
-          </MarqueeText>
-          <Text style={styles.trackArtist} numberOfLines={1}>
-            {currentTrack.artists.map(a => a.name).join(', ')}
-          </Text>
-          {currentTrack.album && (
-            <Text style={styles.trackAlbum} numberOfLines={1}>
-              {currentTrack.album.title.toUpperCase()}
-            </Text>
-          )}
-        </View>
+            {/* Track Info */}
+            <View style={styles.trackInfo}>
+              <MarqueeText style={styles.trackTitle}>
+                {currentTrack.title.toUpperCase()}
+              </MarqueeText>
+              <Text style={styles.trackArtist} numberOfLines={1}>
+                {currentTrack.artists.map(a => a.name).join(', ')}
+              </Text>
+              {currentTrack.album && (
+                <Text style={styles.trackAlbum} numberOfLines={1}>
+                  {currentTrack.album.title.toUpperCase()}
+                </Text>
+              )}
+            </View>
+          </>
+        )}
 
         {/* Progress Section */}
         <View style={styles.progressContainer}>
@@ -133,6 +158,36 @@ const createStyles = (colors: ThemeColors) =>
       height: 36,
       borderWidth: 1,
       borderColor: colors.border,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    queueBtn: {
+      width: 32,
+      height: 32,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    queueBtnActive: {
+      borderColor: colors.accent,
+      backgroundColor: colors.surfaceAlt,
+    },
+    queueBtnIcon: {
+      fontSize: 16,
+      lineHeight: 18,
+      color: colors.textMuted,
+    },
+    queueBtnIconActive: {
+      color: colors.accent,
+    },
+    queueContainer: {
+      flex: 1,
+      marginVertical: 8,
     },
     cassetteContainer: {
       alignItems: 'center',

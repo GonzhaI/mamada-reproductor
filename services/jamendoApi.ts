@@ -88,34 +88,25 @@ async function fetchTracks(params: Record<string, string | number>): Promise<Tra
     throw new Error('Falta EXPO_PUBLIC_JAMENDO_CLIENT_ID en .env')
   }
   const audioformat = (params.audioformat as string | undefined) ?? 'mp32'
-  const { data } = await jamendoApi.get<JamendoResponse<JamendoTrack>>('/tracks/', { params })
-  return data.results.map(t => mapTrack(t, audioformat))
+  // Jamendo devuelve resultados vacíos al azar (~30% de las requests) → reintentar
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data } = await jamendoApi.get<JamendoResponse<JamendoTrack>>('/tracks/', { params })
+    if (data.results.length > 0) {
+      return data.results.map(t => mapTrack(t, audioformat))
+    }
+    await new Promise(resolve => setTimeout(resolve, 300))
+  }
+  return []
 }
 
 // ---------------------------------------------------------------------------
 // Endpoints
 // ---------------------------------------------------------------------------
 
-export async function searchTracks(query: string): Promise<Track[]> {
-  if (!query.trim()) return []
-  return fetchTracks({ search: query.trim(), audioformat: 'mp32', limit: 50 })
-}
-
-export async function getCuratedTracks(): Promise<Track[]> {
-  return fetchTracks({
-    tags: 'lofi',
-    audioformat: 'mp32',
-    groupby: 'artist_id',
-    order: 'popularity_total_desc',
-    limit: 30,
-  })
-}
-
 export const GENRES: ReadonlyArray<{ id: string; name: string; tags: string }> = [
   { id: 'lofi', name: 'LOFI CHILL', tags: 'lofi' },
-  { id: 'chillout', name: 'CHILLOUT', tags: 'chillout' },
-  { id: 'study', name: 'STUDY FOCUS', tags: 'study' },
-  { id: 'jazz', name: 'JAZZ', tags: 'jazz' },
+  { id: 'piano', name: 'PIANO', tags: 'piano' },
+  { id: 'downtempo', name: 'DOWNTEMPO', tags: 'downtempo' },
 ]
 
 export async function getGenreTracks(genreId: string): Promise<Track[]> {
@@ -129,19 +120,20 @@ export async function getGenreTracks(genreId: string): Promise<Track[]> {
   })
 }
 
-export async function getPlaylists(): Promise<Playlist[]> {
-  const lists = await Promise.all(
-    GENRES.map(async genre => {
-      const tracks = await getGenreTracks(genre.id)
-      return {
-        id: genre.id,
-        name: genre.name,
-        trackCount: tracks.length,
-        imageUrl: tracks[0]?.album?.coverUrl ?? null,
-      } satisfies Playlist
-    })
-  )
-  return lists
+/**
+ * Descarga los tracks de cada género UNA sola vez y arma:
+ * - `playlists`: metadata de las playlists de MUSIC
+ * - `curated`: LOFI SELECT (primeros 30 del género lofi)
+ */
+export async function getLibrary(): Promise<{ playlists: Playlist[]; curated: Track[] }> {
+  const tracksPerGenre = await Promise.all(GENRES.map(g => getGenreTracks(g.id)))
+  const playlists = GENRES.map((g, i) => ({
+    id: g.id,
+    name: g.name,
+    trackCount: tracksPerGenre[i].length,
+    imageUrl: tracksPerGenre[i][0]?.album?.coverUrl ?? null,
+  }) satisfies Playlist)
+  return { playlists, curated: tracksPerGenre[0].slice(0, 30) }
 }
 
 export async function getPlaylistTracks(playlistId: string): Promise<Track[]> {

@@ -1,73 +1,47 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Mamada Reproductor",
+  "version": "1.0.0",
+  "identifier": "com.gonzalo.mamada-reproductor",
   "build": {
-    "beforeDevCommand": "npm run web",
-    "beforeBuildCommand": "npm run export:web",
+    "beforeDevCommand": "cd .. && npm run web",
+    "beforeBuildCommand": "cd .. && npm run export:web",
     "devUrl": "http://localhost:8081",
-    "distDir": "../dist"
+    "frontendDist": "../dist"
   },
-  "package": {
-    "productName": "Mamada Reproductor",
-    "version": "1.0.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": true
-      },
-      "fs": {
-        "all": false,
-        "readFile": true,
-        "writeFile": true,
-        "readDir": true,
-        "copyFile": true,
-        "createDir": true
-      },
-      "window": {
-        "all": false,
-        "close": true,
-        "hide": true,
-        "show": true,
-        "maximize": true,
-        "minimize": true,
-        "unmaximize": true,
-        "unminimize": true,
-        "startDragging": true
-      }
-    },
+  "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Mamada Reproductor",
         "label": "main",
-        "width": 1000,
-        "height": 700,
-        "minWidth": 800,
+        "title": "Mamada Reproductor",
+        "width": 520,
+        "height": 720,
+        "minWidth": 420,
         "minHeight": 600,
+        "maxWidth": 520,
         "resizable": true,
         "fullscreen": false,
         "center": true,
         "visible": true,
-        "decorations": true,
-        "transparent": false,
-        "icon": "icons/icon.png"
+        "decorations": false,
+        "transparent": false
       }
     ],
     "security": {
-      "csp": "default-src 'self' data: blob: https://*.jamendo.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.jamendo.com; connect-src 'self' https://*.jamendo.com; media-src 'self' data: blob: https://*.jamendo.com;"
-    },
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "com.gonzalo.mamada-reproductor",
-      "icon": [
-        "icons/icon.png",
-        "icons/icon.ico"
-      ],
-      "windows": {
-        "nsis": {
-          "installerIcon": "icons/icon.ico"
-        }
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
       }
     }
   }

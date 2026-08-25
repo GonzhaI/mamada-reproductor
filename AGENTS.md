@@ -58,12 +58,12 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
 ## Arquitectura de datos
 - `services/types.ts` — tipos neutrales `Track` / `Artist` / `Album` / `Playlist` (el player y las pantallas solo conocen estos).
 - `services/jamendoApi.ts` — axios + Jamendo v3.0:
-  - `searchTracks(q)` → `/tracks/?search=...&audioformat=mp32&limit=50`
-  - `getCuratedTracks()` → `/tracks/?tags=lofi&groupby=artist_id&order=popularity_total_desc&limit=30` (es el "LOFI SELECT" de Library)
-  - `getPlaylists()` / `getPlaylistTracks(id)` → playlists armadas por género (`GENRES`: lofi, chillout, study, jazz) vía `/tracks/?tags=...`
+  - `getLibrary()` → descarga los tracks de los 7 géneros UNA vez y devuelve `{ playlists, curated }`. `curated` = LOFI SELECT (primeros 30 del género lofi). Reemplaza a `getCuratedTracks`/`getPlaylists` (eliminadas — la llamada con `groupby` devolvía vacío en la app sin causa clara; derivar del endpoint de género que sí funciona).
+  - `getGenreTracks(id)` / `getPlaylistTracks(id)` → tracks por tag (`GENRES`: lofi, electronic, piano, downtempo, vol1=classicrock, vol2=retro, vol3=70s — los VOL son el homenaje a Guardianes de la Galaxia; tags chillout/study/jazz están MUERTOS en Jamendo: 0-4 tracks, no usarlos).
+  - `searchTracks` eliminada junto con el tab Search (catálogo curado, búsqueda innecesaria).
   - IDs propios: prefijo `jamendo-` en tracks, `artist-`/`album-` en artistas/álbumes.
-- `services/player.ts` — wrapper `expo-av` (`Audio.Sound`) con listeners de progreso.
-- `hooks/usePlayer.tsx` — contexto global del player. Resuelve el stream con `track.audio ?? SoundHelix fallback` (const `FALLBACK_AUDIO_URL`). `position`/`duration` en segundos.
+- `services/player.ts` — wrapper `expo-av` (`Audio.Sound`) con listeners de progreso + `setVolume(v)` (0..1, se aplica también al cargar cada track via initial status).
+- `hooks/usePlayer.tsx` — contexto global del player. Resuelve el stream con `track.audio ?? SoundHelix fallback` (const `FALLBACK_AUDIO_URL`). `position`/`duration` en segundos. Extras: `volume`/`setVolume`, `shuffleQueue()` (Fisher-Yates SOLO sobre tracks posteriores al actual).
 - Temas: `theme/themes.ts` (tipo `ThemeColors`, nombres en `ThemeName`) + `hooks/useTheme.tsx` (key AsyncStorage: `app_theme`). Patrón obligatorio para estilos temizados: `const { colors } = useTheme()` + `const styles = useMemo(() => createStyles(colors), [colors])`.
 - Nota Jamendo: el endpoint público `/playlists/` no trae cover/count y `/playlists/tracks/` resultó inestable (timeouts) → se evitó a propósito.
 
@@ -76,15 +76,62 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
 ## Tauri v2 config (Fase 7)
 - Carpeta Tauri: `src-tauri/` (separada del proyecto Expo)
 - `tauri.conf.json` → `build.distDir: "../dist"` (apunta a `expo export --platform web`)
-- Ventana: título "Mamada Reproductor", tamaño 1000x700, min 800x600, icono `assets/icon.png`
-- Permisos: `fs:allow-read` (caché audio), `shell:allow-open` (links externos)
+- Ventana: título "Mamada Reproductor", **520×720 vertical** (min 420×600, **max 520**), `decorations: false` (barra de título propia: `components/TitleBar.tsx`, drag via atributo `data-tauri-drag-region` + botones min/max/close via `window.__TAURI__` — requiere `app.withGlobalTauri: true`; se oculta fuera de Tauri). TitleBar montada en la RAÍZ de `_layout.tsx` (común a tabs y pantalla de detalle).
+- Permisos: `src-tauri/capabilities/default.json` — `core:default` + window allow-minimize/toggle-maximize/close/start-dragging + `window-state:default` + `opener:default`
+- Memoria de ventana: plugin oficial `tauri-plugin-window-state` (guarda/restaura tamaño+posición solo). Si cambiás el tamaño default del conf, BORRAR `%APPDATA%\com.gonzalo.mamada-reproductor\.window-state.json` o restaurará la geometría vieja.
+- Plugin opener (`tauri-plugin-opener` en main.rs + capability): usado por `services/openExternal.ts` para los links de YouTube.
 - Audio: WebView usa codecs del SO (MP3 OK en Windows 10+ via WebView2)
 - No `expo-av` en Tauri — player web usa `<audio>` + Web Audio API (ya implementado en `services/player.ts` fallback)
 - Build: `cd src-tauri && cargo tauri build` → `src-tauri/target/release/bundle/msi/`
 - **Requisito previo**: Rust toolchain (`rustup install stable` → `cargo --version`)
 
+### Estructura de tabs actual (2026-08-24)
+- 3 tabs: PLAY (`index`), MUSIC (`library`), SET (`settings`). Search y Queue eliminados como tabs.
+- Queue integrada en el player: botón ≡ en header alterna cassette ↔ lista (`components/QueueList.tsx`, con botón ⇄ SHUFFLE).
+- Volumen: slider COMPACTO en el header del player (`components/VolumeSlider.tsx` prop `compact`, patrón Gesture.Pan igual que ProgressBar).
+
+## Awesome Mixes — homenaje Guardianes de la Galaxia (2026-08-24)
+4 playlists oficiales de las películas reproducidas vía **YouTube IFrame API** (no Jamendo):
+- `services/awesomeMixData.ts` — AUTO-GENERADO por `Temp\opencode\scrape-youtube.ps1` (reanudable, cachea en `Temp\opencode\yt-cache.txt`). Tracklists verificadas contra Wikipedia/Discogs/Marvel.com: Vol.1=12, Vol.2=14, Vol.3=17, Holiday Special=11 (54 tracks). videoIds = primer resultado de búsqueda YT con filtro de video, query `<artista> <título> topic`; TODOS verificados por oEmbed (título correcto). Excepción conocida: Spacehog "In the Meantime" es Re-Recorded (única versión oficial en YT).
+- **Reproducción (v3 con autoplay fix):** el iframe de YouTube carga UN video por vez (`videoId`, sin params de playlist). Player inicia con `mute:1` para bypass de Chrome autoplay policy, luego `unMute()` tras primer play exitoso (400ms delay). Auto-advance: `ENDED`(0) → `next()`. `onError`: solo salta en errores fatales (100 removido, 101/150 embed bloqueado, 5 HTML5) — código 2 (param transitorio) NO salta. Mini-player flotante sin controles nativos (`controls:0, disablekb, fs:0, iv_load_policy:3` + `pointerEvents:'none'`), anclado arriba del TabBar (`bottom:64, right:10`), persiste entre tabs. Seek via puente imperativo `bind`.
+- **Auditoría de embebibilidad (2026-08-24):** los 53 IDs únicos reportan `playableInEmbed:true`, PERO el flag NO es confiable (Dog Days Are Over lyric-video fallaba en runtime "Video unavailable" con flag true). Reemplazado por el video oficial VEVO `iWOyfLBYtuU`. Script auditor: `Temp\opencode\check-embed.ps1` (cachea en `yt-embed.txt`). Si una canción falla en runtime, el onError auto-skipea — buscar upload alternativo y actualizar línea en `Temp\opencode\yt-cache.txt` + re-correr `scrape-youtube.ps1`.
+- **Lección de layout RN Web:** `StyleSheet.absoluteFill`/hijos absolutos requieren un ancestro con `position:'relative'` explícito — las Views de RN son static y los absolutos se anclan a un ancestro lejano pintándose gigantes sobre toda la UI (bug de carátulas). Además `aspectRatio` no siempre propaga altura definida a hijos con `%`: medir ancho con onLayout y setear alto px (patrón MixTile).
+- `hooks/useYt.tsx` — contexto global: `start(mixId, i)`, `stop()`, `togglePlay`, `jumpTo`, `next/prev`, estado `{mix,index,playing,position,duration}`. NO se coordina con usePlayer (Jamendo): si suenan ambos se solapan — pausar uno manualmente.
+- `app/playlist/[id].tsx` — detalle del mix: carátula con crossfade, controles ⏮▶⏭, tracklist numerada; tap en fila = salta a esa canción; tap en la misma = play/pausa. Filas sin videoId muestran `YT ↗` y abren búsqueda en navegador.
+- `services/openExternal.ts` — abre URLs en el navegador del sistema: plugin Tauri opener si existe `__TAURI__.opener`, fallback `window.open`.
+- **Carátulas triple con transición cíclica:** `assets/covers/art-{id}.png` (arte oficial Wikipedia) + `cassette-{id}.png` (casete pixel-art generado a código, color de acento por mix) + `dither-{id}.png` (poster con ordered dithering Bayer 8×8 + scanlines CRT + vignette, generado via `Temp\opencode\gen-covers.ps1` con LockBits). `components/CrossfadeCover.tsx` alterna art→overlay1→overlay2→art cada 5s con crossfade 800ms, Animated built-in de RN (reanimated vetado para loops en web). Grid MUSIC: art→cassette→art. Detalle playlist: art→dithered→art. Badges eliminados (PressStart2P no soporta ★/❄). Mapa de requires: `services/mixCovers.ts` (`ART_COVERS`/`CASSETTE_COVERS`/`DITHERED_COVERS`).
+- Tab MUSIC: grid 2×2 de mixes arriba (`MixesSection`/`MixTile`), debajo filas Jamendo.
+
+### Notas Jamendo (2026-08-24)
+- `fetchTracks` reintenta ×3 con 300ms de delay: la API devuelve resultados VACÍOS al azar (~30% de requests) sin causa aparente.
+- `GENRES` final: lofi, piano, downtempo (electronic eliminado por pedido del usuario).
+
+### Animaciones web (2026-08-24)
+- `react-native-reanimated` estaba CONGELADO en build web para Reel/Equalizer (rotaciones no animaban). Reescritas con el `Animated` built-in de RN (`Animated.loop(timing)`, useNativeDriver:false) en `Reel.tsx` y `Equalizer.tsx`. ProgressBar/Marquee/VolumeSlider sí usan reanimated y funcionan (gestos + estilos animados OK; el problema era solo withRepeat/loop de reanimated en web).
+
+### Icono de la app
+- Fuente pixel-art: `src-tauri/icon-src.png` (generada a código, script en Temp `gen-icon.ps1` — grilla 64×64 escalada ×16 nearest-neighbor, paleta tema tierra).
+- Regenerar todos los formatos tras cambiar la fuente: `cd src-tauri && npx tauri icon icon-src.png` (crea .ico/.icns/PNGs/Appx/iOS/Android).
+
 ## Próximos pasos Fase 7
-1. Instalar Rust: `winget install Rustlang.Rust.GNU` o desde https://rustup.rs/
-2. `cd src-tauri && npm install @tauri-apps/cli@latest` (ya hecho)
-3. `npm run export:web` (genera `dist/`)
-4. `npm run tauri:build` → `.msi` en `src-tauri/target/release/bundle/msi/`
+- ~~Instalar Rust~~ ✅ (GNU toolchain 1.98 en `C:\Program Files\Rust stable GNU 1.98\bin` + MinGW WinLibs UCRT)
+- ~~Configurar Tauri v2~~ ✅ **BUILD EXITOSA (2026-08-24).** Artefactos en `src-tauri/target/release/bundle/{msi,nsis}/`
+
+### Fixes aplicados para lograr el build (2026-08-24)
+1. **`tauri.conf.json` migrado de formato v1 a v2**: `package.productName`→raíz (`productName`), `tauri.allowlist` eliminado (v2 usa capabilities/plugins), `distDir`→`build.frontendDist`, `identifier` movido a raíz.
+2. **`beforeDevCommand`/`beforeBuildCommand` corren dentro de `src-tauri/`** → anteponer `cd .. && `.
+3. **Cargo.toml:** features v1 (`fs-all`, `dialog-all`, `cli`) no existen en la crate `tauri` v2 → dejar solo `default` + `image-png` + `image-ico`.
+4. **Faltaba `src-tauri/build.rs`** (requerido por `tauri::generate_context!`): `fn main() { tauri_build::build() }`.
+5. **`icons/icon.ico` estaba corrupto (126 bytes)**: `create-ico.ps1` con `GetHicon()` produce ICO roto. Regenerado embebiendo PNG 256x256 directo en contenedor ICO (formato PNG-in-ICO, válido desde Vista).
+6. **Windows Defender bloquea archivos de compilación** (`os error 32` aleatorio en `.rmeta`/`.o`): NO se puede agregar exclusión sin admin. Solución: compilar con `CARGO_TARGET_DIR` fuera del workspace (Temp no está vigilado).
+7. **Pantalla en blanco en el exe (2026-08-24)**: el export web funcionaba en navegador pero no en Tauri → la CSP custom escrita a mano bloqueaba algo del bundle. Fix: `"csp": null` (app local personal; si algún día se distribuye, escribir una CSP correcta y probar).
+8. **Capabilities**: `src-tauri/` venía SIN carpeta `capabilities/` — creada `default.json` con los permisos de window para la barra de título propia.
+9. **Icono**: el `.ico` original estaba corrupto y se regeneró a mano; hoy se usa `npx tauri icon icon-src.png` (ver sección Icono).
+
+### Comando de build que funciona (usar SIEMPRE así)
+```powershell
+$env:PATH = "C:\Users\ibane\AppData\Local\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin;" + $env:PATH + ";$env:USERPROFILE\.cargo\bin"
+$env:CARGO_TARGET_DIR = "C:\Users\ibane\AppData\Local\Temp\opencode\target"  # evita locks del antivirus
+cd src-tauri; npx tauri build   # CLI via npm devDependency @tauri-apps/cli (NO hay cargo-tauri instalado)
+```
+Primera compilación: ~15 min (432 crates). Siguientes: <1 min. Copiar artefactos finales de Temp → `src-tauri/target/release/` (exe, WebView2Loader.dll y bundle/{msi,nsis}).

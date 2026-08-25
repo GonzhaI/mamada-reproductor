@@ -6,11 +6,9 @@ import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
 
 const TAB_CONFIG = [
-  { name: 'index',    label: 'PLAY',  icon: '▶' },
-  { name: 'library',  label: 'LIB',   icon: '◈' },
-  { name: 'search',   label: 'SRCH',  icon: '⌕' },
-  { name: 'queue',    label: 'QUEUE', icon: '≡' },
-  { name: 'settings', label: 'SET',   icon: '⚙' },
+  { name: 'index',   label: 'PLAY',  icon: '▶' },
+  { name: 'library', label: 'MUSIC', icon: '◈' },
+  { name: 'settings', label: 'SET',  icon: '⚙' },
 ]
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {

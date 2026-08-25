@@ -1,9 +1,13 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { router } from 'expo-router'
 import { useLibrary } from '@/hooks/useLibrary'
 import { usePlayer } from '@/hooks/usePlayer'
 import { getPlaylistTracks } from '@/services/jamendoApi'
+import { AWESOME_MIXES } from '@/services/awesomeMixData'
+import { ART_COVERS, CASSETTE_COVERS, DITHERED_COVERS } from '@/services/mixCovers'
+import { CrossfadeCover } from '@/components/CrossfadeCover'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
 
@@ -34,6 +38,47 @@ function PlaylistRow({ item, onPress }: { item: PlaylistItem; onPress: () => voi
   )
 }
 
+function MixTile({ mixId, onPress }: { mixId: string; onPress: () => void }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
+  const mix = AWESOME_MIXES[mixId]
+  // ancho medido → alto cuadrado explícito (aspectRatio % no siempre propaga altura definida)
+  const [tileW, setTileW] = useState(0)
+
+  return (
+    <TouchableOpacity
+      style={styles.mixTile}
+      activeOpacity={0.8}
+      onPress={onPress}
+      onLayout={e => setTileW(e.nativeEvent.layout.width)}
+    >
+      <View style={[styles.mixCoverFrame, { borderColor: mix.accent, height: tileW > 0 ? tileW : undefined }]}>
+        <CrossfadeCover art={ART_COVERS[mixId]} overlay1={CASSETTE_COVERS[mixId]} overlay2={ART_COVERS[mixId]} />
+      </View>
+      <Text style={styles.mixName} numberOfLines={1}>
+        {mix.title}
+      </Text>
+    </TouchableOpacity>
+  )
+}
+
+function MixesSection() {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
+
+  return (
+    <View style={styles.mixesSection}>
+      <Text style={styles.sectionLabel}>GUARDIANS OF THE GALAXY</Text>
+      <View style={styles.mixesGrid}>
+        {Object.keys(AWESOME_MIXES).map(id => (
+          <MixTile key={id} mixId={id} onPress={() => router.push(`/playlist/${id}`)} />
+        ))}
+      </View>
+      <Text style={styles.sectionLabel2}>JAMENDO LO-FI</Text>
+    </View>
+  )
+}
+
 export default function LibraryScreen() {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
@@ -59,14 +104,16 @@ export default function LibraryScreen() {
 
   const items: PlaylistItem[] = [
     { id: 'favorites', name: 'LOFI SELECT', count: favorites.length, type: 'favorites' },
-    ...playlists.map(p => ({ id: p.id, name: p.name.toUpperCase(), count: p.trackCount, type: 'playlist' as const })),
+    ...playlists
+      .filter(p => p.trackCount > 0)
+      .map(p => ({ id: p.id, name: p.name.toUpperCase(), count: p.trackCount, type: 'playlist' as const })),
   ]
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>LIBRARY</Text>
+          <Text style={styles.headerTitle}>MUSIC</Text>
           <View style={styles.headerLine} />
         </View>
 
@@ -92,6 +139,7 @@ export default function LibraryScreen() {
               />
             )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListHeaderComponent={<MixesSection />}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             onRefresh={refresh}
@@ -131,6 +179,47 @@ const createStyles = (colors: ThemeColors) =>
     },
     list: {
       paddingBottom: 16,
+    },
+    mixesSection: {
+      marginBottom: 20,
+      gap: 12,
+    },
+    sectionLabel: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.textMuted,
+      letterSpacing: 2,
+    },
+    sectionLabel2: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.textMuted,
+      letterSpacing: 2,
+      marginTop: 4,
+    },
+    mixesGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 14,
+    },
+    mixTile: {
+      width: '48%',
+      gap: 8,
+    },
+    mixCoverFrame: {
+      width: '100%',
+      borderWidth: 3,
+      padding: 4,
+      backgroundColor: colors.surface,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    mixName: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 6,
+      color: colors.text,
+      letterSpacing: 0.5,
+      textAlign: 'center',
     },
     row: {
       flexDirection: 'row',

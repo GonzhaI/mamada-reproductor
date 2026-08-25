@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getCuratedTracks, getPlaylists } from '@/services/jamendoApi'
+import { getLibrary } from '@/services/jamendoApi'
 import type { Playlist, Track } from '@/services/types'
 
 interface UseLibraryResult {
@@ -20,7 +20,7 @@ export function useLibrary(): UseLibraryResult {
     setLoading(true)
     setError(null)
     try {
-      const [curated, genrePlaylists] = await Promise.all([getCuratedTracks(), getPlaylists()])
+      const { playlists: genrePlaylists, curated } = await getLibrary()
       setFavorites(curated)
       setPlaylists(genrePlaylists)
     } catch (err) {

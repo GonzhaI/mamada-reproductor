@@ -1,14 +1,5 @@
-import { useEffect, useMemo } from 'react'
-import { StyleSheet, View } from 'react-native'
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withRepeat,
-  withSequence,
-  Easing,
-  cancelAnimation,
-} from 'react-native-reanimated'
+import { useEffect, useMemo, useRef } from 'react'
+import { StyleSheet, View, Animated as RNAnimated, Easing } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
 
@@ -17,42 +8,40 @@ interface EqualizerProps {
   barCount?: number
 }
 
-function EqBar({ isPlaying }: { isPlaying: boolean; index: number; totalBars: number }) {
+function EqBar({ isPlaying }: { isPlaying: boolean }) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
-  const height = useSharedValue(4) // initial small height
+  const height = useRef(new RNAnimated.Value(4)).current
 
   useEffect(() => {
-    if (isPlaying) {
-      // Create a random but somewhat rhythmic animation for each bar
-      const randomDuration = 200 + Math.random() * 300
-      const randomMaxHeight = 10 + Math.random() * 20
-      const randomMidHeight = 5 + Math.random() * 15
-
-      height.value = withRepeat(
-        withSequence(
-          withTiming(randomMaxHeight, { duration: randomDuration, easing: Easing.inOut(Easing.ease) }),
-          withTiming(randomMidHeight, { duration: randomDuration * 0.8, easing: Easing.inOut(Easing.ease) }),
-          withTiming(4, { duration: randomDuration, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      )
-    } else {
-      cancelAnimation(height)
-      height.value = withTiming(4, { duration: 300 }) // settle down when paused
+    if (!isPlaying) {
+      RNAnimated.timing(height, {
+        toValue: 4,
+        duration: 300,
+        useNativeDriver: false,
+      }).start()
+      return undefined
     }
-  }, [isPlaying])
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      height: height.value,
-    }
-  })
+    // Random per-bar rhythm so bars don't move in sync
+    const dur = 200 + Math.random() * 200
+    const maxH = 20 + Math.random() * 10
+    const midH = 5 + Math.random() * 15
+
+    const loop = RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(height, { toValue: maxH, duration: dur, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        RNAnimated.timing(height, { toValue: midH, duration: dur * 0.8, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        RNAnimated.timing(height, { toValue: 4, duration: dur, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+      ])
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [isPlaying, height])
 
   return (
     <View style={styles.barContainer}>
-      <Animated.View style={[styles.bar, animatedStyle]} />
+      <RNAnimated.View style={[styles.bar, { height }]} />
     </View>
   )
 }
@@ -65,7 +54,7 @@ export function Equalizer({ isPlaying, barCount = 10 }: EqualizerProps) {
   return (
     <View style={styles.container}>
       {bars.map((i) => (
-        <EqBar key={i} isPlaying={isPlaying} index={i} totalBars={barCount} />
+        <EqBar key={i} isPlaying={isPlaying} />
       ))}
     </View>
   )

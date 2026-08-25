@@ -1,14 +1,5 @@
-import { useEffect, useMemo } from 'react'
-import { StyleSheet, View } from 'react-native'
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withSequence,
-  Easing,
-  cancelAnimation,
-} from 'react-native-reanimated'
+import { useEffect, useMemo, useRef } from 'react'
+import { StyleSheet, View, Animated as RNAnimated, Easing } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
 
@@ -21,32 +12,37 @@ interface ReelProps {
 export function Reel({ isPlaying, speed = 1, size = 48 }: ReelProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
-  const rotation = useSharedValue(0)
+  const rotation = useRef(new RNAnimated.Value(0)).current
 
   useEffect(() => {
-    if (isPlaying) {
-      rotation.value = withRepeat(
-        withTiming(360, {
-          duration: 3000 / speed,
-          easing: Easing.linear,
-        }),
-        -1, // Infinite repeat
-        false
-      )
-    } else {
-      cancelAnimation(rotation)
-    }
-  }, [isPlaying, speed])
+    if (!isPlaying) return undefined
+    const loop = RNAnimated.loop(
+      RNAnimated.timing(rotation, {
+        toValue: 360,
+        duration: 3000 / speed,
+        easing: Easing.linear,
+        useNativeDriver: false,
+      })
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [isPlaying, speed, rotation])
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ rotate: `${rotation.value}deg` }],
-    }
+  const spin = rotation.interpolate({
+    inputRange: [0, 360],
+    outputRange: ['0deg', '360deg'],
   })
 
   return (
     <View style={[styles.container, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Animated.View style={[styles.reel, { width: size, height: size, borderRadius: size / 2 }, animatedStyle]}>
+      {/* Tape rings — visible spool that rotates */}
+      <RNAnimated.View
+        style={[
+          styles.reel,
+          { width: size - 8, height: size - 8, borderRadius: (size - 8) / 2 },
+          { transform: [{ rotate: spin }] },
+        ]}
+      >
         {/* Spokes */}
         <View style={styles.spokeHorizontal} />
         <View style={styles.spokeVertical} />
@@ -57,7 +53,7 @@ export function Reel({ isPlaying, speed = 1, size = 48 }: ReelProps) {
         <View style={styles.hubContainer}>
           <View style={styles.hub} />
         </View>
-      </Animated.View>
+      </RNAnimated.View>
     </View>
   )
 }
@@ -65,8 +61,8 @@ export function Reel({ isPlaying, speed = 1, size = 48 }: ReelProps) {
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
-      backgroundColor: colors.tape,
-      borderWidth: 1,
+      backgroundColor: colors.black,
+      borderWidth: 2,
       borderColor: colors.border,
       alignItems: 'center',
       justifyContent: 'center',
@@ -74,6 +70,8 @@ const createStyles = (colors: ThemeColors) =>
     },
     reel: {
       backgroundColor: colors.reel,
+      borderWidth: 3,
+      borderColor: colors.tape,
       alignItems: 'center',
       justifyContent: 'center',
       position: 'relative',
@@ -91,32 +89,34 @@ const createStyles = (colors: ThemeColors) =>
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: colors.border,
+      backgroundColor: colors.accent,
     },
     spokeHorizontal: {
       position: 'absolute',
       width: '100%',
-      height: 2,
+      height: 4,
       backgroundColor: colors.tape,
     },
     spokeVertical: {
       position: 'absolute',
-      width: 2,
+      width: 4,
       height: '100%',
       backgroundColor: colors.tape,
     },
     spokeDiagonal1: {
       position: 'absolute',
       width: '100%',
-      height: 2,
-      backgroundColor: colors.tape,
+      height: 4,
+      backgroundColor: colors.labelDark,
+      opacity: 0.7,
       transform: [{ rotate: '45deg' }],
     },
     spokeDiagonal2: {
       position: 'absolute',
       width: '100%',
-      height: 2,
-      backgroundColor: colors.tape,
+      height: 4,
+      backgroundColor: colors.labelDark,
+      opacity: 0.7,
       transform: [{ rotate: '-45deg' }],
     },
   })

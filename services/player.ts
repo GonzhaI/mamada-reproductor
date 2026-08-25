@@ -20,6 +20,7 @@ class AudioPlayer {
   private _duration = 0
   private _isPlaying = false
   private _isLoaded = false
+  private _volume = 1
 
   get position(): number {
     return this._position
@@ -32,6 +33,9 @@ class AudioPlayer {
   }
   get isLoaded(): boolean {
     return this._isLoaded
+  }
+  get volume(): number {
+    return this._volume
   }
 
   subscribe(listener: PlayerListener): () => void {
@@ -61,7 +65,7 @@ class AudioPlayer {
 
     const { sound } = await Audio.Sound.createAsync(
       { uri },
-      { shouldPlay: false, progressUpdateIntervalMillis: POLL_INTERVAL_MS }
+      { shouldPlay: false, progressUpdateIntervalMillis: POLL_INTERVAL_MS, volume: this._volume }
     )
     this.sound = sound
 
@@ -101,6 +105,13 @@ class AudioPlayer {
       await this.pause()
     } else {
       await this.play()
+    }
+  }
+
+  async setVolume(volume: number): Promise<void> {
+    this._volume = Math.min(1, Math.max(0, volume))
+    if (this.sound) {
+      await this.sound.setVolumeAsync(this._volume)
     }
   }
 

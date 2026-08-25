@@ -13,6 +13,7 @@ interface PlayerContextValue {
   position: number
   duration: number
   isLoaded: boolean
+  volume: number
   playTrack: (track: Track, queue?: Track[], startIndex?: number) => Promise<void>
   togglePlay: () => Promise<void>
   seekTo: (seconds: number) => Promise<void>
@@ -22,6 +23,8 @@ interface PlayerContextValue {
   removeFromQueue: (index: number) => void
   clearQueue: () => void
   jumpToIndex: (index: number) => Promise<void>
+  shuffleQueue: () => void
+  setVolume: (volume: number) => void
 }
 
 const PlayerContext = createContext<PlayerContextValue | null>(null)
@@ -43,6 +46,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [volume, setVolumeState] = useState(1)
 
   const loadingRef = useRef(false)
 
@@ -170,6 +174,25 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setIsLoaded(false)
   }, [])
 
+  // Fisher-Yates sobre los tracks posteriores al actual (el que suena no se mueve)
+  const shuffleQueue = useCallback(() => {
+    setQueue(prev => {
+      if (queueIndex < 0) return prev
+      const head = prev.slice(0, queueIndex + 1)
+      const tail = prev.slice(queueIndex + 1)
+      for (let i = tail.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[tail[i], tail[j]] = [tail[j], tail[i]]
+      }
+      return [...head, ...tail]
+    })
+  }, [queueIndex])
+
+  const setVolume = useCallback((v: number) => {
+    setVolumeState(v)
+    audioPlayer.setVolume(v)
+  }, [])
+
   const value = useMemo<PlayerContextValue>(() => ({
     currentTrack,
     queue,
@@ -178,6 +201,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     position,
     duration,
     isLoaded,
+    volume,
     playTrack,
     togglePlay,
     seekTo,
@@ -187,9 +211,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     removeFromQueue,
     clearQueue,
     jumpToIndex: playAtIndex,
+    shuffleQueue,
+    setVolume,
   }), [
-    currentTrack, queue, queueIndex, isPlaying, position, duration, isLoaded,
-    playTrack, togglePlay, seekTo, next, previous, addToQueue, removeFromQueue, clearQueue, playAtIndex,
+    currentTrack, queue, queueIndex, isPlaying, position, duration, isLoaded, volume,
+    playTrack, togglePlay, seekTo, next, previous, addToQueue, removeFromQueue, clearQueue, playAtIndex, shuffleQueue, setVolume,
   ])
 
   return (
