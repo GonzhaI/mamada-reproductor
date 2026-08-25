@@ -10,6 +10,8 @@ interface YTPlayer {
   seekTo(seconds: number, allowSeekAhead: boolean): void
   getCurrentTime(): number
   getDuration(): number
+  getPlayerState(): number
+  mute(): void
   unMute(): void
   destroy(): void
 }
@@ -40,6 +42,7 @@ declare global {
 // Estados de la API: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued
 const YT_ENDED = 0
 const YT_PLAYING = 1
+const YT_BUFFERING = 3
 
 function loadYTApi(onReady: () => void) {
   if (window.YT?.Player) {
@@ -82,10 +85,59 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
   const playStateCb = useRef(onPlayingChange)
   const timeCb = useRef(onTime)
   const wantPlay = useRef(playing)
+  // timers del helper de reanudación (limpiados al desmontar/recrear player)
+  const pendingTimers = useRef<ReturnType<typeof setTimeout>[]>([])
   endedCb.current = onEnded
   playStateCb.current = onPlayingChange
   timeCb.current = onTime
   wantPlay.current = playing
+
+  // Reanudación garantizada bajo autoplay policy: el primer play fue muted-autoplay,
+  // así que un playVideo() posterior sobre el player sin mute puede ser bloqueado
+  // (WebView2/Chrome sin MEI ni activación delegada al iframe). Si a los ~500ms no
+  // arrancó, truco infalible: mute+play (siempre permitido) y unMute ya sonando.
+  const guaranteedPlay = () => {
+    const p = playerRef.current
+    if (!p) return
+    try {
+      p.playVideo()
+    } catch {
+      // noop
+    }
+    pendingTimers.current.push(
+      setTimeout(() => {
+        const p2 = playerRef.current
+        if (!p2 || !wantPlay.current) return
+        let state = -99
+        try {
+          state = p2.getPlayerState()
+        } catch {
+          return
+        }
+        if (state === YT_PLAYING) return
+        try {
+          p2.mute()
+          p2.playVideo()
+        } catch {
+          // noop
+        }
+        pendingTimers.current.push(
+          setTimeout(() => {
+            try {
+              playerRef.current?.unMute()
+            } catch {
+              // noop
+            }
+          }, 350),
+        )
+      }, 500),
+    )
+  }
+
+  const clearPendingTimers = () => {
+    pendingTimers.current.forEach(clearTimeout)
+    pendingTimers.current = []
+  }
 
   useEffect(() => {
     let disposed = false
@@ -116,17 +168,7 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
         events: {
           onReady: () => {
             if (bind) bind.current = { seekTo: s => { try { player.seekTo(s, true) } catch { /* noop */ } } }
-            if (wantPlay.current) {
-              try {
-                player.playVideo()
-                // Restore audio after autoplay policy satisfied
-                setTimeout(() => {
-                  try { player.unMute() } catch { /* noop */ }
-                }, 400)
-              } catch {
-                // noop
-              }
-            }
+            if (wantPlay.current) guaranteedPlay()
             poll = setInterval(() => {
               try {
                 timeCb.current(player.getCurrentTime(), player.getDuration())
@@ -136,6 +178,9 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
             }, 500)
           },
           onStateChange: e => {
+            // 3=BUFFERING (disparado por seek/load): no reportarlo como pausa
+            // ni dejar que el efecto [playing] pauseVideo() durante el buffer
+            if (e.data === YT_BUFFERING) return
             playStateCb.current(e.data === YT_PLAYING)
             if (e.data === YT_ENDED) endedCb.current()
           },
@@ -158,6 +203,7 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
     return () => {
       disposed = true
       if (poll) clearInterval(poll)
+      clearPendingTimers()
       if (bind) bind.current = null
       try {
         playerRef.current?.destroy()
@@ -176,7 +222,7 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
     loadedIndexRef.current = startIndex
     try {
       p.loadVideoById(videoIds[startIndex])
-      if (playing) p.playVideo()
+      if (wantPlay.current) guaranteedPlay()
     } catch {
       // noop
     }
@@ -188,7 +234,7 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
     const p = playerRef.current
     if (!p) return
     try {
-      if (playing) p.playVideo()
+      if (playing) guaranteedPlay()
       else p.pauseVideo()
     } catch {
       // noop

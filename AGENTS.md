@@ -34,21 +34,22 @@ DO NOT use `App.tsx` or `index.ts` as entry — Expo Router manages that.
   - Dep nueva: `@react-native-async-storage/async-storage`.
   - Verificado: `npx tsc --noEmit` limpio + `expo export --platform web` OK.
 - **Fase 7 — Tauri v2 Desktop Wrapper (2026-08-24, en progreso):**
-  - Objetivo: ejecutable `.exe`/`msi` para Windows (futuro: Linux/macOS) envolviendo `dist/` web.
+  - Objetivo: ejecutable `.exe`/`.msi` para Windows (futuro: Linux/macOS) envolviendo `dist/` web.
   - Tauri v2 elegido sobre Electron: binario ~5-15MB, WebView del sistema, Rust backend, mobile-ready.
   - No compromete diseño: la web export es pixel-perfect, Tauri solo provee ventana nativa + APIs (fs, audio, updater).
   - Pasos: `npm create tauri-app@latest` en subcarpeta → configurar `tauri.conf.json` → `cargo tauri build`.
   - Audio: Jamendo MP3 via `<audio>`/Web Audio API en WebView — funciona nativo sin `expo-av`.
+- **Sesión 2026-08-25:** sistema de **4 skins** de player (cassette/vinyl/tocadiscos/jukebox) + geometría del brazo del tocadiscos corregida + **fix v4 de seek/pausa en YouTube IFrame**. Detalles en las secciones "Skins del player" y "Awesome Mixes".
 
 ## Rumbo de diseño (prioridad alta)
 Se compensa el uso de una API genérica con una UI **excesivamente bonita, minimalista y llena de detalles**. Inspiración: `https://github.com/cupidbity/cupid-music-player` (tocadiscos pixel-art). Detalles a portar/estudiar:
-- Vinilo girando + aguja animada sobre el artwork
+- ~~Vinilo girando + aguja animada sobre el artwork~~ ✅ 2026-08-25 (skins `VinylDisc`/`Turntable`)
 - Animación de cambio de disco al cambiar canción (alternancia de colores/estilo)
 - ~~Título con **marquee scroll** cuando es largo~~ ✅ 2026-08-22 (`MarqueeText.tsx`)
 - ~~Progress bar con indicador arrastrable~~ ✅ 2026-08-22 (seek real)
 - ~~Tema con persistencia (preferencia guardada)~~ ✅ 2026-08-22 (tierra/arena/neon)
 - Micro-interacciones: presión de botones ✅ (Controls ya anima presión), transiciones entre pantallas
-- El cassette actual ya tiene carretes + ecualizador — evaluar fusionar con la estética tocadiscos
+- ~~El cassette actual ya tiene carretes + ecualizador — evaluar fusionar con la estética tocadiscos~~ ✅ 2026-08-25 (sistema de 4 skins seleccionables)
 
 ## Git workflow
 Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `main` on completed milestones.
@@ -93,7 +94,8 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
 ## Awesome Mixes — homenaje Guardianes de la Galaxia (2026-08-24)
 4 playlists oficiales de las películas reproducidas vía **YouTube IFrame API** (no Jamendo):
 - `services/awesomeMixData.ts` — AUTO-GENERADO por `Temp\opencode\scrape-youtube.ps1` (reanudable, cachea en `Temp\opencode\yt-cache.txt`). Tracklists verificadas contra Wikipedia/Discogs/Marvel.com: Vol.1=12, Vol.2=14, Vol.3=17, Holiday Special=11 (54 tracks). videoIds = primer resultado de búsqueda YT con filtro de video, query `<artista> <título> topic`; TODOS verificados por oEmbed (título correcto). Excepción conocida: Spacehog "In the Meantime" es Re-Recorded (única versión oficial en YT).
-- **Reproducción (v3 con autoplay fix):** el iframe de YouTube carga UN video por vez (`videoId`, sin params de playlist). Player inicia con `mute:1` para bypass de Chrome autoplay policy, luego `unMute()` tras primer play exitoso (400ms delay). Auto-advance: `ENDED`(0) → `next()`. `onError`: solo salta en errores fatales (100 removido, 101/150 embed bloqueado, 5 HTML5) — código 2 (param transitorio) NO salta. Mini-player flotante sin controles nativos (`controls:0, disablekb, fs:0, iv_load_policy:3` + `pointerEvents:'none'`), anclado arriba del TabBar (`bottom:64, right:10`), persiste entre tabs. Seek via puente imperativo `bind`.
+- **Reproducción (v4, 2026-08-25 — resume fix):** el iframe de YouTube carga UN video por vez (`videoId`, sin params de playlist). Player inicia con `mute:1` para bypass de Chrome autoplay policy, luego `unMute()` tras primer play exitoso. Auto-advance: `ENDED`(0) → `next()`. `onError`: solo salta en errores fatales (100 removido, 101/150 embed bloqueado, 5 HTML5) — código 2 (param transitorio) NO salta. Mini-player flotante sin controles nativos (`controls:0, disablekb, fs:0, iv_load_policy:3` + `pointerEvents:'none'`), anclado arriba del TabBar (`bottom:64, right:10`), persiste entre tabs. Seek via puente imperativo `bind`.
+- **Fix v4 — seek/pausa dejaba el video trabado (2026-08-25, `components/YtPlayer.tsx`):** dos causas raíz: (1) `onStateChange` mapeaba cualquier estado ≠1 a pausa → un seek dispara estado 3 (BUFFERING) → el contexto hacía setPlaying(false) → el engine llamaba `pauseVideo()` en pleno buffer y mataba la reproducción. FIX: estado 3 se IGNORA en onStateChange. (2) El primer play es muted-autoplay (permitido siempre), pero CUALQUIER `playVideo()` posterior sobre el player sin mute lo bloquea WebView2/Chrome en silencio (perfil sin MEI, activación de usuario no delegada al iframe cross-origin) → pausar funcionaba, reanudar no. FIX: helper `guaranteedPlay()` = `playVideo()` → verifica `getPlayerState()` a los ~500ms → si no arrancó, truco re-mute infalible (`mute()` + `playVideo()`, siempre permitido) + `unMute()` a los ~350ms ya sonando. **REGLA: usar SIEMPRE guaranteedPlay() para reproducir** (onReady, efecto `[playing]`, post-loadVideoById) — nunca playVideo() pelado. Timers del helper van a `pendingTimers` ref y se limpian al destruir el player. Interfaz YTPlayer requiere `getPlayerState()` y `mute()`.
 - **Auditoría de embebibilidad (2026-08-24):** los 53 IDs únicos reportan `playableInEmbed:true`, PERO el flag NO es confiable (Dog Days Are Over lyric-video fallaba en runtime "Video unavailable" con flag true). Reemplazado por el video oficial VEVO `iWOyfLBYtuU`. Script auditor: `Temp\opencode\check-embed.ps1` (cachea en `yt-embed.txt`). Si una canción falla en runtime, el onError auto-skipea — buscar upload alternativo y actualizar línea en `Temp\opencode\yt-cache.txt` + re-correr `scrape-youtube.ps1`.
 - **Lección de layout RN Web:** `StyleSheet.absoluteFill`/hijos absolutos requieren un ancestro con `position:'relative'` explícito — las Views de RN son static y los absolutos se anclan a un ancestro lejano pintándose gigantes sobre toda la UI (bug de carátulas). Además `aspectRatio` no siempre propaga altura definida a hijos con `%`: medir ancho con onLayout y setear alto px (patrón MixTile).
 - `hooks/useYt.tsx` — contexto global: `start(mixId, i)`, `stop()`, `togglePlay`, `jumpTo`, `next/prev`, estado `{mix,index,playing,position,duration}`. NO se coordina con usePlayer (Jamendo): si suenan ambos se solapan — pausar uno manualmente.
@@ -108,6 +110,17 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
 
 ### Animaciones web (2026-08-24)
 - `react-native-reanimated` estaba CONGELADO en build web para Reel/Equalizer (rotaciones no animaban). Reescritas con el `Animated` built-in de RN (`Animated.loop(timing)`, useNativeDriver:false) en `Reel.tsx` y `Equalizer.tsx`. ProgressBar/Marquee/VolumeSlider sí usan reanimated y funcionan (gestos + estilos animados OK; el problema era solo withRepeat/loop de reanimated en web).
+
+### Skins del player — 4 modelos (2026-08-25)
+- Pieles intercambiables en el tab PLAY: `hooks/usePlayerSkin.tsx` (tipo `PlayerSkin` = `cassette | vinyl | turntable | jukebox`, persistido en AsyncStorage key `player_skin`, provider montado en `_layout.tsx` bajo ThemeProvider). `components/PlayerSkinView.tsx` pinta el switcher (TAPE/VINYL/DECK/JUKE) + spring de escala al cambiar. Para agregar un 5to modelo: tipo+array en usePlayerSkin, case en PlayerSkinView, botón en el switcher.
+- `components/vinyl/VinylDisc.tsx` — disco girando (Animated built-in, loop linear 4s), surcos concéntricos, sheen, etiqueta central con carátula o fallback "33 RPM". Props: `isPlaying/coverUrl/title/artist/size`.
+- `components/turntable/Turntable.tsx` — chassis HI-FI con platter (VinylDisc size 195) + brazo animado. **Geometría del brazo (lección dura, no romper):**
+  - Pivote real = `transformOrigin: '50% 0%'` sobre el contenedor del brazo alineado al gimbal (`left:6, top:18` dentro del base 36×36). El hack viejo `translateY(20)/rotate/translateY(-20)` rotaba ~60px DEBAJO del pivote visible → movimiento invertido/extraño.
+  - El eje de la varilla debe pasar por el centro exacto del gimbal (antes `left:14` desviaba 8px → lo "descuadrado").
+  - Base del brazo junto al platter (`left:4` en rightAssembly): pivote a ~142px del centro del plato; ángulos reposo `-22°` / reproducción `+30°` → la aguja cae sobre el surco medio (r≈70px verificado a mano). Con la base vieja (`right:18`) el brazo era físicamente incapaz de tocar el disco.
+  - IMPORT: VinylDisc vive en `components/vinyl/` — un import relativo `./VinylDisc` desde `components/turntable/` rompe TODO el bundle de Metro sin error claro en runtime (causa raíz de la integración fallida del 2026-08-25).
+- `components/jukebox/Jukebox.tsx` — rocola pixel: arco con glow pulsante al reproducir, tubos de burbujas laterales con onda viajera (UN solo Animated.Value master + interpolación coseno desfasada por burbuja = loop seamless sin N loops), ventana circular con la carátula, placa NOW PLAYING, botonera de colores fija, rejilla y patas.
+- Todas las animaciones nuevas usan `Animated` built-in de RN (reanimated vetado para loops en web — ver Animaciones web).
 
 ### Icono de la app
 - Fuente pixel-art: `src-tauri/icon-src.png` (generada a código, script en Temp `gen-icon.ps1` — grilla 64×64 escalada ×16 nearest-neighbor, paleta tema tierra).

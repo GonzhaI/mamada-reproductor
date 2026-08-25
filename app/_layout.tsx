@@ -9,6 +9,8 @@ import { ThemeProvider, useTheme } from '@/hooks/useTheme'
 import { useFonts } from '@/hooks/useFonts'
 import { TitleBar } from '@/components/TitleBar'
 
+import { PlayerSkinProvider } from '@/hooks/usePlayerSkin'
+
 // Prevent the splash screen from auto-hiding before fonts are loaded
 SplashScreen.preventAutoHideAsync()
 
@@ -49,11 +51,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <PlayerProvider>
-          <YtProvider>
-            <RootNavigator />
-          </YtProvider>
-        </PlayerProvider>
+        <PlayerSkinProvider>
+          <PlayerProvider>
+            <YtProvider>
+              <RootNavigator />
+            </YtProvider>
+          </PlayerProvider>
+        </PlayerSkinProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   )

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
-import { CassetteBody } from '@/components/cassette/CassetteBody'
+import { PlayerSkinView } from '@/components/PlayerSkinView'
 import { Equalizer } from '@/components/cassette/Equalizer'
 import { Controls } from '@/components/Controls'
 import { ProgressBar } from '@/components/ProgressBar'
@@ -78,9 +78,9 @@ export default function PlayerScreen() {
           </View>
         ) : (
           <>
-            {/* Cassette Area */}
+            {/* Visualizer / Skin Model Area (Tape / Vinyl / Deck) */}
             <View style={styles.cassetteContainer}>
-              <CassetteBody
+              <PlayerSkinView
                 title={currentTrack.title.toUpperCase()}
                 artist={currentTrack.artists.map(a => a.name.toUpperCase()).join(', ')}
                 isPlaying={isPlaying}
