@@ -13,6 +13,8 @@ interface PlayerSkinViewProps {
   artist: string
   isPlaying: boolean
   coverUrl?: string
+  /** Identidad del track actual: al cambiar dispara la animación de cambio de disco */
+  trackKey?: string
 }
 
 export function PlayerSkinView({
@@ -20,6 +22,7 @@ export function PlayerSkinView({
   artist,
   isPlaying,
   coverUrl,
+  trackKey,
 }: PlayerSkinViewProps) {
   const { colors } = useTheme()
   const { skin, setSkin, cycleSkin } = usePlayerSkin()
@@ -42,6 +45,20 @@ export function PlayerSkinView({
     }
   }, [skin, animValue])
 
+  // Cambio de canción: pop sutil del modelo (cada skin además hace su propia coreografía)
+  const currentTrackRef = useRef(trackKey)
+  useEffect(() => {
+    if (currentTrackRef.current === trackKey) return
+    currentTrackRef.current = trackKey
+    animValue.setValue(0.85)
+    RNAnimated.spring(animValue, {
+      toValue: 1,
+      friction: 6,
+      tension: 80,
+      useNativeDriver: false,
+    }).start()
+  }, [trackKey, animValue])
+
   const renderCurrentModel = () => {
     switch (skin) {
       case 'vinyl':
@@ -53,6 +70,7 @@ export function PlayerSkinView({
               title={title}
               artist={artist}
               size={230}
+              trackKey={trackKey}
             />
           </View>
         )
@@ -64,6 +82,7 @@ export function PlayerSkinView({
               coverUrl={coverUrl}
               title={title}
               artist={artist}
+              trackKey={trackKey}
             />
           </View>
         )
@@ -87,6 +106,7 @@ export function PlayerSkinView({
               coverUrl={coverUrl}
               title={title}
               artist={artist}
+              trackKey={trackKey}
             />
           </View>
         )

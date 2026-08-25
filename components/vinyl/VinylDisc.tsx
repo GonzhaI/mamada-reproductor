@@ -9,6 +9,8 @@ interface VinylDiscProps {
   title?: string
   artist?: string
   size?: number
+  /** Identidad del track actual: al cambiar, el disco hace un burst de rotación */
+  trackKey?: string
 }
 
 export function VinylDisc({
@@ -17,6 +19,7 @@ export function VinylDisc({
   title,
   artist,
   size = 230,
+  trackKey,
 }: VinylDiscProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
@@ -36,9 +39,37 @@ export function VinylDisc({
     return () => loop.stop()
   }, [isPlaying, rotation])
 
+  // Cambio de disco: burst de aceleración (1.5 vueltas extra con frenado) + flash en la etiqueta
+  const burst = useRef(new RNAnimated.Value(0)).current
+  const labelFlash = useRef(new RNAnimated.Value(0)).current
+  const prevTrackKey = useRef(trackKey)
+  useEffect(() => {
+    if (prevTrackKey.current === trackKey) return
+    prevTrackKey.current = trackKey
+    burst.setValue(0)
+    labelFlash.setValue(0.75)
+    RNAnimated.timing(burst, {
+      toValue: 1,
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start()
+    RNAnimated.timing(labelFlash, {
+      toValue: 0,
+      duration: 550,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start()
+  }, [trackKey, burst, labelFlash])
+
   const spin = rotation.interpolate({
     inputRange: [0, 360],
     outputRange: ['0deg', '360deg'],
+  })
+
+  const burstSpin = burst.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '540deg'],
   })
 
   const labelSize = Math.round(size * 0.38)
@@ -50,7 +81,7 @@ export function VinylDisc({
         style={[
           styles.disc,
           { width: size, height: size, borderRadius: size / 2 },
-          { transform: [{ rotate: spin }] },
+          { transform: [{ rotate: spin }, { rotate: burstSpin }] },
         ]}
       >
         {/* Vinyl Grooves (Surcos) */}
@@ -94,6 +125,12 @@ export function VinylDisc({
                 borderRadius: centerHoleSize / 2,
               },
             ]}
+          />
+
+          {/* Flash al cambiar de disco */}
+          <RNAnimated.View
+            pointerEvents="none"
+            style={[styles.labelFlash, { opacity: labelFlash }]}
           />
         </View>
       </RNAnimated.View>
@@ -181,5 +218,9 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.bg,
       borderWidth: 1.5,
       borderColor: colors.border,
+    },
+    labelFlash: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.accent,
     },
   })

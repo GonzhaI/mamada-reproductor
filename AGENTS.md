@@ -44,7 +44,7 @@ DO NOT use `App.tsx` or `index.ts` as entry — Expo Router manages that.
 ## Rumbo de diseño (prioridad alta)
 Se compensa el uso de una API genérica con una UI **excesivamente bonita, minimalista y llena de detalles**. Inspiración: `https://github.com/cupidbity/cupid-music-player` (tocadiscos pixel-art). Detalles a portar/estudiar:
 - ~~Vinilo girando + aguja animada sobre el artwork~~ ✅ 2026-08-25 (skins `VinylDisc`/`Turntable`)
-- Animación de cambio de disco al cambiar canción (alternancia de colores/estilo)
+- ~~Animación de cambio de disco al cambiar canción~~ ✅ 2026-08-25 (coreografía por skin — ver "Cambio de disco animado")
 - ~~Título con **marquee scroll** cuando es largo~~ ✅ 2026-08-22 (`MarqueeText.tsx`)
 - ~~Progress bar con indicador arrastrable~~ ✅ 2026-08-22 (seek real)
 - ~~Tema con persistencia (preferencia guardada)~~ ✅ 2026-08-22 (tierra/arena/neon)
@@ -121,6 +121,14 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
   - IMPORT: VinylDisc vive en `components/vinyl/` — un import relativo `./VinylDisc` desde `components/turntable/` rompe TODO el bundle de Metro sin error claro en runtime (causa raíz de la integración fallida del 2026-08-25).
 - `components/jukebox/Jukebox.tsx` — rocola pixel: arco con glow pulsante al reproducir, tubos de burbujas laterales con onda viajera (UN solo Animated.Value master + interpolación coseno desfasada por burbuja = loop seamless sin N loops), ventana circular con la carátula, placa NOW PLAYING, botonera de colores fija, rejilla y patas.
 - Todas las animaciones nuevas usan `Animated` built-in de RN (reanimated vetado para loops en web — ver Animaciones web).
+
+### Cambio de disco animado (2026-08-25)
+- Al cambiar de canción, cada skin hace su propia coreografía. Mecanismo: prop `trackKey?: string` (=`currentTrack.id`) que baja desde `app/(tabs)/index.tsx` → `PlayerSkinView` → skins. Cada skin compara con un ref (`prevTrackKey`) y solo anima si cambió (sin animación en el mount inicial).
+- Genérico: `PlayerSkinView` hace un pop sutil (spring 0.85→1) reutilizando el mismo `animValue` del cambio de skin.
+- `VinylDisc`: burst de rotación (Animated.Value aparte apilado como segundo `{rotate}` en el transform — NO se toca el loop base de 4s) + flash accent en la etiqueta (overlay absoluteFill sobre el label, opacity 0.75→0).
+- `Turntable`: el brazo levanta (240ms) → espera 380ms → cae sobre el disco nuevo (640ms). **UN SOLO useEffect maneja `armAnim`** mirando `[isPlaying, trackKey]` — nunca haber dos efectos escribiendo el mismo Animated.Value (si no, los timings se interleavean y tiembla). El burst del VinylDisc interno llega vía `trackKey` pasada al platter.
+- `Jukebox`: flash accent en la ventana circular (overlay 0.7→0, 650ms).
+- Cassette: solo el pop genérico (los carretes ya reinician solos con isPlaying).
 
 ### Icono de la app
 - Fuente pixel-art: `src-tauri/icon-src.png` (generada a código, script en Temp `gen-icon.ps1` — grilla 64×64 escalada ×16 nearest-neighbor, paleta tema tierra).

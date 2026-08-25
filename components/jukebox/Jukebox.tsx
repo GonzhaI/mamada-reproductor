@@ -8,6 +8,8 @@ interface JukeboxProps {
   coverUrl?: string
   title?: string
   artist?: string
+  /** Identidad del track actual: al cambiar, la ventana dispara un flash de luz */
+  trackKey?: string
 }
 
 const BUBBLES = 4
@@ -17,9 +19,25 @@ export function Jukebox({
   coverUrl,
   title,
   artist,
+  trackKey,
 }: JukeboxProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
+
+  // Flash de la ventana al cambiar de disco
+  const windowFlash = useRef(new RNAnimated.Value(0)).current
+  const prevTrackKey = useRef(trackKey)
+  useEffect(() => {
+    if (prevTrackKey.current === trackKey) return
+    prevTrackKey.current = trackKey
+    windowFlash.setValue(0.7)
+    RNAnimated.timing(windowFlash, {
+      toValue: 0,
+      duration: 650,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start()
+  }, [trackKey, windowFlash])
 
   // Un solo valor maestro → onda viajera por las burbujas (loop seamless)
   const wave = useRef(new RNAnimated.Value(0)).current
@@ -78,6 +96,10 @@ export function Jukebox({
               </View>
             )}
             <View style={styles.windowShine} />
+            <RNAnimated.View
+              pointerEvents="none"
+              style={[styles.windowFlash, { opacity: windowFlash }]}
+            />
           </View>
           <BubbleTube styles={styles} opacityFor={bubbleOpacity} />
         </View>
@@ -226,6 +248,10 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 45,
       backgroundColor: 'rgba(255, 255, 255, 0.08)',
       transform: [{ rotate: '30deg' }],
+    },
+    windowFlash: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.accent,
     },
     titlePlate: {
       marginTop: 12,

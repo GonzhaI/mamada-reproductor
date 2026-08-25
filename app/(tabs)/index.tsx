@@ -85,6 +85,7 @@ export default function PlayerScreen() {
                 artist={currentTrack.artists.map(a => a.name.toUpperCase()).join(', ')}
                 isPlaying={isPlaying}
                 coverUrl={currentTrack.album?.coverUrl ?? undefined}
+                trackKey={currentTrack.id}
               />
             </View>
 

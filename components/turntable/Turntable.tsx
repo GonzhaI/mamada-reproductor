@@ -9,6 +9,8 @@ interface TurntableProps {
   coverUrl?: string
   title?: string
   artist?: string
+  /** Identidad del track actual: al cambiar, el brazo levanta y vuelve a caer */
+  trackKey?: string
 }
 
 export function Turntable({
@@ -16,6 +18,7 @@ export function Turntable({
   coverUrl,
   title,
   artist,
+  trackKey,
 }: TurntableProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
@@ -24,16 +27,45 @@ export function Turntable({
   // Pivote real = centro del gimbal (transformOrigin '50% 0%' sobre el contenedor alineado)
   // Rest position: -22deg (brazo levantado fuera del disco, hacia la derecha)
   // Playing position: +30deg (aguja cae sobre el surco medio, r~70px del centro)
-  const armAnim = useRef(new RNAnimated.Value(isPlaying ? 1 : 0)).current
+  //
+  // UN SOLO efecto maneja el brazo (isPlaying + trackChange) para que las dos
+  // animaciones nunca pisen el mismo Animated.Value:
+  // - cambio de track sonando: levanta rápido → pausa → baja sobre el disco nuevo
+  // - resto: sube/baja normal según isPlaying
+  const armAnim = useRef(new RNAnimated.Value(0)).current
+  const prevTrackKey = useRef(trackKey)
+  const mounted = useRef(false)
 
   useEffect(() => {
-    RNAnimated.timing(armAnim, {
-      toValue: isPlaying ? 1 : 0,
-      duration: 700,
-      easing: Easing.out(Easing.back(1.2)),
-      useNativeDriver: false,
-    }).start()
-  }, [isPlaying, armAnim])
+    const isTrackChange = mounted.current && prevTrackKey.current !== trackKey
+    prevTrackKey.current = trackKey
+    mounted.current = true
+
+    if (isTrackChange && isPlaying) {
+      RNAnimated.sequence([
+        RNAnimated.timing(armAnim, {
+          toValue: 0,
+          duration: 240,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        RNAnimated.delay(380),
+        RNAnimated.timing(armAnim, {
+          toValue: 1,
+          duration: 640,
+          easing: Easing.out(Easing.back(1.2)),
+          useNativeDriver: false,
+        }),
+      ]).start()
+    } else {
+      RNAnimated.timing(armAnim, {
+        toValue: isPlaying ? 1 : 0,
+        duration: 700,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: false,
+      }).start()
+    }
+  }, [isPlaying, trackKey, armAnim])
 
   const armRotation = armAnim.interpolate({
     inputRange: [0, 1],
@@ -79,6 +111,7 @@ export function Turntable({
                 title={title}
                 artist={artist}
                 size={195}
+                trackKey={trackKey}
               />
             </View>
           </View>
