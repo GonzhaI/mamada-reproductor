@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
+import { sfx } from '@/services/sfxEngine'
 
 interface ControlsProps {
   isPlaying: boolean
@@ -89,14 +90,29 @@ export function Controls({
 
   return (
     <View style={styles.container}>
-      <ControlButton icon="⏮" onPress={onPrevious} />
+      <ControlButton
+        icon="⏮"
+        onPress={() => {
+          sfx.play('track')
+          onPrevious()
+        }}
+      />
       <ControlButton
         icon={isPlaying ? "⏸" : "▶"}
-        onPress={onPlayPause}
+        onPress={() => {
+          sfx.play('clack')
+          onPlayPause()
+        }}
         isPlayBtn
         isActive={isPlaying}
       />
-      <ControlButton icon="⏭" onPress={onNext} />
+      <ControlButton
+        icon="⏭"
+        onPress={() => {
+          sfx.play('track')
+          onNext()
+        }}
+      />
     </View>
   )
 }

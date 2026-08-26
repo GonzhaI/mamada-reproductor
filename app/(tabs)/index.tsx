@@ -15,6 +15,7 @@ import { useCoverAccent } from '@/hooks/useCoverAccent'
 import { useLyrics } from '@/hooks/useLyrics'
 import { useLyricsOffset } from '@/hooks/useLyricsOffset'
 import { LyricsView } from '@/components/LyricsView'
+import { sfx } from '@/services/sfxEngine'
 
 export default function PlayerScreen() {
   const { colors } = useTheme()
@@ -82,7 +83,10 @@ export default function PlayerScreen() {
             )}
             <TouchableOpacity
               style={[styles.queueBtn, showQueue && styles.queueBtnActive]}
-              onPress={() => setShowQueue(v => !v)}
+              onPress={() => {
+                sfx.play('tick')
+                setShowQueue(v => !v)
+              }}
               activeOpacity={0.7}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >

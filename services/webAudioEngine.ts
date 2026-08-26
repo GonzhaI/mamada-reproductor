@@ -35,6 +35,12 @@ class WebAudioEngine {
   private freq: Uint8Array<ArrayBuffer> | null = null
   private smooth: number[] = []
   private analysable = false
+  // Modo cinta gastada: filtro lowpass + wow/flutter + velocidad (pitch)
+  private filter: BiquadFilterNode | null = null
+  private wornEnabled = false
+  private wornSpeed = 1
+  private wowPhase = 0
+  private wowTimer: ReturnType<typeof setInterval> | null = null
 
   get position(): number {
     return (this.el?.currentTime ?? 0) * 1000
@@ -52,6 +58,73 @@ class WebAudioEngine {
   /** true si hay AnalyserNode activo (=> getLevels devuelve datos reales) */
   get canAnalyse(): boolean {
     return this.analysable && !!this.analyser
+  }
+
+  /**
+   * Configura el modo cinta gastada. Se aplica al elemento actual y queda
+   * memorizado para las próximas cargas.
+   */
+  setWorn(enabled: boolean, speed: number): void {
+    this.wornEnabled = enabled
+    this.wornSpeed = Math.min(1.5, Math.max(0.5, speed))
+    this.applyWorn()
+  }
+
+  private applyWorn(): void {
+    const el = this.el
+    if (!el) return
+    try {
+      // preservesPitch=false => la velocidad arrastra el tono, como cinta real
+      ;(el as HTMLMediaElement & { webkitPreservesPitch?: boolean }).webkitPreservesPitch =
+        !this.wornEnabled
+      el.preservesPitch = !this.wornEnabled
+    } catch {
+      // navegador viejo sin la prop
+    }
+    if (this.filter) {
+      try {
+        this.filter.frequency.setTargetAtTime(
+          this.wornEnabled ? 3200 : 20000,
+          this.ensureCtx()?.currentTime ?? 0,
+          0.05
+        )
+      } catch {
+        // noop
+      }
+    }
+    if (this.wornEnabled) this.startWow()
+    else this.stopWow(true)
+  }
+
+  // Wow & flutter: ondulación lenta de la velocidad (~6Hz, ±0.7%) via rAF-less interval.
+  // playbackRate no es AudioParam, así que se setea por tick — a esta profundidad es inaudible como pasos.
+  private startWow(): void {
+    if (this.wowTimer) return
+    this.wowPhase = Math.random() * Math.PI * 2
+    this.wowTimer = setInterval(() => {
+      const el = this.el
+      if (!el) return
+      try {
+        this.wowPhase += 0.36
+        el.playbackRate = this.wornSpeed * (1 + 0.007 * Math.sin(this.wowPhase))
+      } catch {
+        // noop
+      }
+    }, 60)
+  }
+
+  private stopWow(resetRate: boolean): void {
+    if (this.wowTimer) {
+      clearInterval(this.wowTimer)
+      this.wowTimer = null
+    }
+    if (resetRate && this.el) {
+      try {
+        this.el.playbackRate = this.wornSpeed
+      } catch {
+        // noop
+      }
+    }
   }
 
   async load(uri: string): Promise<void> {
@@ -88,6 +161,8 @@ class WebAudioEngine {
 
     // El elemento ya cargó: recién ahora cablear el grafo (si el probe dio OK).
     if (corsOk) this.wireAnalyser(el)
+    // Aplicar modo cinta (velocidad/pitch) al elemento fresco
+    this.applyWorn()
   }
 
   private ensureCtx(): AudioContext | null {
@@ -113,9 +188,16 @@ class WebAudioEngine {
       const analyser = ctx.createAnalyser()
       analyser.fftSize = 256
       analyser.smoothingTimeConstant = 0.55 // respuesta rápida sin nerviosismo
-      source.connect(analyser)
+      // Lowpass transparente (20kHz) para el modo cinta gastada
+      const filter = ctx.createBiquadFilter()
+      filter.type = 'lowpass'
+      filter.frequency.value = this.wornEnabled ? 3200 : 20000
+      filter.Q.value = 0.4
+      source.connect(filter)
+      filter.connect(analyser)
       analyser.connect(ctx.destination)
       this.source = source
+      this.filter = filter
       this.analyser = analyser
       this.freq = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount))
       this.analysable = true
@@ -160,6 +242,7 @@ class WebAudioEngine {
   }
 
   unload(): void {
+    this.stopWow(false)
     this.teardownElement()
   }
 

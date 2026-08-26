@@ -7,6 +7,7 @@ import {
   setMediaMetadata,
   setMediaPlaybackState,
 } from '@/services/mediaSession'
+import { sfx } from '@/services/sfxEngine'
 import { ART_COVERS } from '@/services/mixCovers'
 
 const SEEK_STEP = 5
@@ -22,6 +23,11 @@ const VOLUME_STEP = 0.1
 export function SystemShortcuts() {
   const player = usePlayer()
   const yt = useYt()
+
+  // Preferencias + precarga de samples de foley (web only)
+  useEffect(() => {
+    void sfx.init()
+  }, [])
 
   const ytActive = yt.mix !== null
 

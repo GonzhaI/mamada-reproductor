@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
+import { sfx } from '@/services/sfxEngine'
 
 interface ProgressBarProps {
   currentTime: number
@@ -37,6 +38,7 @@ export function ProgressBar({ currentTime, duration, onSeek }: ProgressBarProps)
     (ratio: number) => {
       dragRatio.value = -1
       if (onSeek && duration > 0 && isFinite(ratio)) {
+        sfx.play('tick')
         onSeek(Math.min(1, Math.max(0, ratio)) * duration)
       }
     },

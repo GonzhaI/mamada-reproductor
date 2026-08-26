@@ -11,6 +11,7 @@ import { LyricsView } from '@/components/LyricsView'
 import { useYt } from '@/hooks/useYt'
 import { useLyrics } from '@/hooks/useLyrics'
 import { useLyricsOffset } from '@/hooks/useLyricsOffset'
+import { sfx } from '@/services/sfxEngine'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
 
@@ -93,16 +94,20 @@ export default function PlaylistScreen() {
   const handleTrackPress = (_track: AwesomeMixTrack, i: number) => {
     if (isActiveMix) {
       if (yt.index === i) {
+        sfx.play('clack')
         yt.togglePlay()
       } else {
+        sfx.play('track')
         yt.jumpTo(i)
       }
     } else {
+      sfx.play('load')
       yt.start(mix.id, i)
     }
   }
 
   const handlePrevNext = (dir: 1 | -1) => {
+    sfx.play('track')
     if (isActiveMix) {
       if (dir === 1) yt.next()
       else yt.prev()
@@ -157,7 +162,11 @@ export default function PlaylistScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.playBtn, { borderColor: colors.accent }]}
-                onPress={() => (isActiveMix ? yt.togglePlay() : yt.start(mix.id, Math.max(currentIndex, 0)))}
+                onPress={() => {
+                  sfx.play('clack')
+                  if (isActiveMix) yt.togglePlay()
+                  else yt.start(mix.id, Math.max(currentIndex, 0))
+                }}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.playIcon, { color: colors.accent }]}>

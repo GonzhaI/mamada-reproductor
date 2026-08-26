@@ -1,8 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors, ThemeName } from '@/theme/themes'
+import { useWornTape } from '@/hooks/useWornTape'
+import { sfx } from '@/services/sfxEngine'
 
 type SettingsRowProps = {
   label: string
@@ -28,9 +30,24 @@ const THEME_OPTIONS: { name: ThemeName; label: string }[] = [
   { name: 'neon', label: 'NEON' },
 ]
 
+const SPEED_OPTIONS: { value: number; label: string }[] = [
+  { value: 0.85, label: 'LENTO' },
+  { value: 1, label: 'NORMAL' },
+  { value: 1.25, label: '45 RPM' },
+]
+
 export default function SettingsScreen() {
   const { colors, themeName, setTheme } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
+  const worn = useWornTape()
+  const [sfxOn, setSfxOn] = useState(sfx.enabled)
+
+  const toggleSfx = () => {
+    sfx.play('switch')
+    const next = !sfxOn
+    sfx.setEnabled(next)
+    setSfxOn(next)
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -87,6 +104,68 @@ export default function SettingsScreen() {
           <Text style={styles.cardTitle}>REPRODUCCIÓN</Text>
           <View style={styles.cardSeparator} />
           <SettingsRow label="STREAMING" value="MP3 VBR" />
+          <View style={styles.rowSep} />
+
+          {/* Cinta gastada */}
+          <TouchableOpacity
+            style={styles.toggleRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              sfx.play('switch')
+              worn.setEnabled(!worn.enabled)
+            }}
+          >
+            <Text style={styles.rowLabel}>CINTA GASTADA</Text>
+            <View style={[styles.toggle, worn.enabled && styles.toggleOn]}>
+              <View
+                style={[
+                  styles.toggleKnob,
+                  worn.enabled && styles.toggleKnobOn,
+                  worn.enabled && { backgroundColor: colors.accent },
+                ]}
+              />
+            </View>
+          </TouchableOpacity>
+          {worn.enabled && (
+            <>
+              <Text style={styles.hint}>LOWPASS + WOW/FLUTTER · EL PITCH SIGUE A LA VELOCIDAD</Text>
+              <View style={styles.speedRow}>
+                {SPEED_OPTIONS.map(option => {
+                  const isActive = Math.abs(option.value - worn.speed) < 0.01
+                  return (
+                    <TouchableOpacity
+                      key={option.label}
+                      style={[styles.themeBtn, isActive && styles.themeBtnActive]}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        sfx.play('tick')
+                        worn.setSpeed(option.value)
+                      }}
+                    >
+                      <Text style={[styles.themeBtnText, isActive && styles.themeBtnTextActive]}>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+            </>
+          )}
+          <View style={styles.rowSep} />
+
+          {/* Foley mecánico */}
+          <TouchableOpacity style={styles.toggleRow} activeOpacity={0.7} onPress={toggleSfx}>
+            <Text style={styles.rowLabel}>SONIDO DE INTERFAZ</Text>
+            <View style={[styles.toggle, sfxOn && styles.toggleOn]}>
+              <View
+                style={[
+                  styles.toggleKnob,
+                  sfxOn && styles.toggleKnobOn,
+                  sfxOn && { backgroundColor: colors.accent },
+                ]}
+              />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* About card */}
@@ -248,6 +327,46 @@ const createStyles = (colors: ThemeColors) =>
       height: 1,
       backgroundColor: colors.border,
       opacity: 0.4,
+      marginVertical: 4,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+    },
+    toggle: {
+      width: 40,
+      height: 20,
+      borderWidth: 2,
+      borderColor: colors.border,
+      backgroundColor: colors.bg,
+      justifyContent: 'center',
+      paddingHorizontal: 2,
+    },
+    toggleOn: {
+      borderColor: colors.accent,
+    },
+    toggleKnob: {
+      width: 14,
+      height: 12,
+      backgroundColor: colors.textMuted,
+    },
+    toggleKnobOn: {
+      alignSelf: 'flex-end',
+    },
+    hint: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 12,
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+      marginBottom: 8,
+      marginTop: -2,
+    },
+    speedRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 6,
     },
     footer: {
       fontFamily: 'VT323_400Regular',

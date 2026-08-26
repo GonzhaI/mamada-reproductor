@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
+import { sfx } from '@/services/sfxEngine'
 
 // Tipos mínimos de la IFrame API de YouTube (sin @types/youtube)
 interface YTPlayer {
@@ -321,7 +322,14 @@ export function YtMiniPlayer(props: YtEngineProps & { onClose: () => void }) {
     <View style={[styles.frame, { borderColor: colors.border, backgroundColor: colors.bg }]}>
       <View style={styles.titleRow}>
         <Text style={[styles.title, { color: colors.textMuted }]}>AWESOME MIX</Text>
-        <TouchableOpacity onPress={onClose} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={() => {
+            sfx.play('eject')
+            onClose()
+          }}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          activeOpacity={0.7}
+        >
           <Text style={[styles.close, { color: colors.accent }]}>✕</Text>
         </TouchableOpacity>
       </View>

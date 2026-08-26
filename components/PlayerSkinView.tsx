@@ -7,6 +7,7 @@ import { CassetteBody } from '@/components/cassette/CassetteBody'
 import { VinylDisc } from '@/components/vinyl/VinylDisc'
 import { Turntable } from '@/components/turntable/Turntable'
 import { Jukebox } from '@/components/jukebox/Jukebox'
+import { sfx } from '@/services/sfxEngine'
 
 interface PlayerSkinViewProps {
   title: string
@@ -125,7 +126,10 @@ export function PlayerSkinView({
       <View style={styles.selectorRow}>
         <TouchableOpacity
           style={[styles.selectorBtn, skin === 'cassette' && styles.selectorBtnActive]}
-          onPress={() => setSkin('cassette')}
+          onPress={() => {
+            sfx.play('switch')
+            void setSkin('cassette')
+          }}
           activeOpacity={0.7}
         >
           <Text style={[styles.selectorText, skin === 'cassette' && styles.selectorTextActive]}>
@@ -135,7 +139,10 @@ export function PlayerSkinView({
 
         <TouchableOpacity
           style={[styles.selectorBtn, skin === 'vinyl' && styles.selectorBtnActive]}
-          onPress={() => setSkin('vinyl')}
+          onPress={() => {
+            sfx.play('switch')
+            void setSkin('vinyl')
+          }}
           activeOpacity={0.7}
         >
           <Text style={[styles.selectorText, skin === 'vinyl' && styles.selectorTextActive]}>
@@ -145,7 +152,10 @@ export function PlayerSkinView({
 
         <TouchableOpacity
           style={[styles.selectorBtn, skin === 'turntable' && styles.selectorBtnActive]}
-          onPress={() => setSkin('turntable')}
+          onPress={() => {
+            sfx.play('switch')
+            void setSkin('turntable')
+          }}
           activeOpacity={0.7}
         >
           <Text style={[styles.selectorText, skin === 'turntable' && styles.selectorTextActive]}>
@@ -155,7 +165,10 @@ export function PlayerSkinView({
 
         <TouchableOpacity
           style={[styles.selectorBtn, skin === 'jukebox' && styles.selectorBtnActive]}
-          onPress={() => setSkin('jukebox')}
+          onPress={() => {
+            sfx.play('switch')
+            void setSkin('jukebox')
+          }}
           activeOpacity={0.7}
         >
           <Text style={[styles.selectorText, skin === 'jukebox' && styles.selectorTextActive]}>

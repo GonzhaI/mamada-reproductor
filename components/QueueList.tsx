@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { usePlayer } from '@/hooks/usePlayer'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
+import { sfx } from '@/services/sfxEngine'
 
 function formatDuration(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60)
@@ -31,7 +32,10 @@ export function QueueList() {
         <Text style={styles.headerCount}>{queue.length} TRACKS</Text>
         <TouchableOpacity
           style={styles.shuffleBtn}
-          onPress={shuffleQueue}
+          onPress={() => {
+            sfx.play('switch')
+            shuffleQueue()
+          }}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
@@ -45,7 +49,10 @@ export function QueueList() {
         <TouchableOpacity
           style={[styles.row, index === queueIndex && styles.rowActive]}
           activeOpacity={0.7}
-          onPress={() => jumpToIndex(index)}
+          onPress={() => {
+            sfx.play('track')
+            jumpToIndex(index)
+          }}
         >
           <Text style={[styles.rowIndex, index === queueIndex && styles.rowIndexActive]}>
             {index === queueIndex ? '▶' : String(index + 1).padStart(2, '0')}

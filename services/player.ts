@@ -177,6 +177,12 @@ class AudioPlayer {
     return webAudioEngine.getLevels(bands)
   }
 
+  /** Modo cinta gastada: lowpass + wow/flutter + velocidad con pitch (solo web) */
+  setWornTape(enabled: boolean, speed = 1): void {
+    if (!IS_WEB) return
+    webAudioEngine.setWorn(enabled, speed)
+  }
+
   private startWebPolling() {
     this.stopWebPolling()
     this.syncFromWebEngine(true)
