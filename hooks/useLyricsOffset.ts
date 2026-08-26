@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const OFFSET_KEY_PREFIX = 'lyrics_offset:'
-export const LYRICS_OFFSET_LIMIT = 10 // segundos por lado
+export const LYRICS_OFFSET_LIMIT = 15 // segundos por lado
 
 /**
  * Desfase de letra sincronizada para un track (clave `artista|título`),

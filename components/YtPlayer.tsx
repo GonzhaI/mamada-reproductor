@@ -13,6 +13,7 @@ interface YTPlayer {
   getPlayerState(): number
   mute(): void
   unMute(): void
+  isMuted(): boolean
   destroy(): void
 }
 interface YTNamespace {
@@ -87,18 +88,63 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
   const wantPlay = useRef(playing)
   // timers del helper de reanudación (limpiados al desmontar/recrear player)
   const pendingTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  // single-flight: cada guaranteedPlay invalida los timers de la anterior
+  const playGen = useRef(0)
+  // watchdog de audio: reintenta unMute mientras suena muteado (fix v5)
+  const auditTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   endedCb.current = onEnded
   playStateCb.current = onPlayingChange
   timeCb.current = onTime
   wantPlay.current = playing
 
+  const stopAudioAudit = () => {
+    if (auditTimer.current) {
+      clearInterval(auditTimer.current)
+      auditTimer.current = null
+    }
+  }
+
+  // FIX v5 — auto-advance mudo: el unMute post-mute-trick corre en un setTimeout,
+  // SIN activación de usuario. Si pasaron >5s desde el último click (auto-advance),
+  // Chromium/WebView2 lo IGNORA y el track queda sonando sin audio.
+  // Watchdog: mientras quiera reproducir y esté muteado, reintenta unMute cada ~800ms.
+  // Se autodetiene al lograr audio, al pausar o si el player desaparece. Barato:
+  // dos llamadas IPC al iframe por tick, solo durante el estado problemático.
+  // Bonus: cuando el MEI del perfil acumula reproducción, la política se relaja
+  // sola y este loop aprovecha el primer tick en que pasa a estar permitido.
+  const ensureAudible = () => {
+    if (auditTimer.current) return
+    auditTimer.current = setInterval(() => {
+      const p = playerRef.current
+      if (!p || !wantPlay.current) {
+        stopAudioAudit()
+        return
+      }
+      try {
+        if (p.getPlayerState() !== YT_PLAYING) {
+          stopAudioAudit()
+          return
+        }
+        if (p.isMuted()) p.unMute()
+        else stopAudioAudit()
+      } catch {
+        stopAudioAudit()
+      }
+    }, 800)
+  }
+
   // Reanudación garantizada bajo autoplay policy: el primer play fue muted-autoplay,
   // así que un playVideo() posterior sobre el player sin mute puede ser bloqueado
   // (WebView2/Chrome sin MEI ni activación delegada al iframe). Si a los ~500ms no
-  // arrancó, truco infalible: mute+play (siempre permitido) y unMute ya sonando.
+  // arrancó, truco infalible: mute+play (siempre permitido) y watchdog de unMute.
+  // Single-flight: una llamada nueva incrementa la generación y limpia los timers
+  // de la anterior — las 3 entradas (onReady, efecto [playing], post-loadVideoById)
+  // ya no pueden interleavearse entre sí.
   const guaranteedPlay = () => {
     const p = playerRef.current
     if (!p) return
+    const gen = ++playGen.current
+    clearPendingTimers()
     try {
       p.playVideo()
     } catch {
@@ -106,6 +152,7 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
     }
     pendingTimers.current.push(
       setTimeout(() => {
+        if (gen !== playGen.current) return
         const p2 = playerRef.current
         if (!p2 || !wantPlay.current) return
         let state = -99
@@ -114,6 +161,7 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
         } catch {
           return
         }
+        ensureAudible()
         if (state === YT_PLAYING) return
         try {
           p2.mute()
@@ -121,15 +169,6 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
         } catch {
           // noop
         }
-        pendingTimers.current.push(
-          setTimeout(() => {
-            try {
-              playerRef.current?.unMute()
-            } catch {
-              // noop
-            }
-          }, 350),
-        )
       }, 500),
     )
   }
@@ -137,6 +176,7 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
   const clearPendingTimers = () => {
     pendingTimers.current.forEach(clearTimeout)
     pendingTimers.current = []
+    stopAudioAudit()
   }
 
   useEffect(() => {
@@ -200,10 +240,26 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
 
     loadYTApi(create)
 
+    // FIX v5 — rescate por gesto: con activación de usuario real el unMute SIEMPRE
+    // se honra. Cualquier click en cualquier parte de la app recupera el audio de un
+    // track que hubiera quedado mudo tras un auto-advance.
+    const rescueAudio = () => {
+      const p = playerRef.current
+      if (!p || !wantPlay.current) return
+      try {
+        if (p.getPlayerState() === YT_PLAYING && p.isMuted()) p.unMute()
+      } catch {
+        // noop
+      }
+    }
+    document.addEventListener('pointerdown', rescueAudio, true)
+
     return () => {
       disposed = true
       if (poll) clearInterval(poll)
       clearPendingTimers()
+      stopAudioAudit()
+      document.removeEventListener('pointerdown', rescueAudio, true)
       if (bind) bind.current = null
       try {
         playerRef.current?.destroy()
