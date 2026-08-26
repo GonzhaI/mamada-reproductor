@@ -8,6 +8,7 @@ import { YtProvider } from '@/hooks/useYt'
 import { ThemeProvider, useTheme } from '@/hooks/useTheme'
 import { useFonts } from '@/hooks/useFonts'
 import { TitleBar } from '@/components/TitleBar'
+import { SystemShortcuts } from '@/components/SystemShortcuts'
 
 import { PlayerSkinProvider } from '@/hooks/usePlayerSkin'
 
@@ -54,6 +55,7 @@ export default function RootLayout() {
         <PlayerSkinProvider>
           <PlayerProvider>
             <YtProvider>
+              <SystemShortcuts />
               <RootNavigator />
             </YtProvider>
           </PlayerProvider>
