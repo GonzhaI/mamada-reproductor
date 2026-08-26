@@ -33,6 +33,7 @@ class WebAudioEngine {
   private source: MediaElementAudioSourceNode | null = null
   private analyser: AnalyserNode | null = null
   private freq: Uint8Array<ArrayBuffer> | null = null
+  private time: Uint8Array<ArrayBuffer> | null = null
   private smooth: number[] = []
   private analysable = false
   // Modo cinta gastada: filtro lowpass + wow/flutter + velocidad (pitch)
@@ -200,6 +201,7 @@ class WebAudioEngine {
       this.filter = filter
       this.analyser = analyser
       this.freq = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount))
+      this.time = new Uint8Array(new ArrayBuffer(analyser.fftSize))
       this.analysable = true
     } catch {
       // Sin análisis (CORS tardío, límite de fuentes, etc.): reproducción normal.
@@ -260,6 +262,7 @@ class WebAudioEngine {
     // analyser/ctx son singletons: se reusan entre pistas
     this.analyser = null
     this.freq = null
+    this.time = null
     if (el) {
       try {
         el.pause()
@@ -311,6 +314,22 @@ class WebAudioEngine {
       const smoothed = v > prev ? v : prev * 0.86 // decay
       this.smooth[b] = smoothed
       out.push(smoothed)
+    }
+    return out
+  }
+
+  /**
+   * Forma de onda cruda (-1..1) para el osciloscopio. Downsample a `points`.
+   * null si no hay análisis disponible.
+   */
+  getWaveform(points: number): Float32Array | null {
+    if (!this.analyser || !this.time) return null
+    this.analyser.getByteTimeDomainData(this.time)
+    const out = new Float32Array(points)
+    const step = this.time.length / points
+    for (let i = 0; i < points; i++) {
+      const v = this.time[Math.floor(i * step)]!
+      out[i] = (v - 128) / 128
     }
     return out
   }

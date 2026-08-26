@@ -183,6 +183,15 @@ class AudioPlayer {
     webAudioEngine.setWorn(enabled, speed)
   }
 
+  /**
+   * Forma de onda -1..1 del AnalyserNode (solo web con CORS-ok).
+   * null => el osciloscopio dibuja su modo reposo.
+   */
+  getWaveform(points: number): Float32Array | null {
+    if (!IS_WEB || !this._isLoaded) return null
+    return webAudioEngine.getWaveform(points)
+  }
+
   private startWebPolling() {
     this.stopWebPolling()
     this.syncFromWebEngine(true)

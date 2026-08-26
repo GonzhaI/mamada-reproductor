@@ -1,10 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-export type PlayerSkin = 'cassette' | 'vinyl' | 'turntable' | 'jukebox'
+export type PlayerSkin = 'cassette' | 'vinyl' | 'turntable' | 'jukebox' | 'radio' | 'scope'
 
 const STORAGE_KEY = 'player_skin'
-const SKINS: PlayerSkin[] = ['cassette', 'vinyl', 'turntable', 'jukebox']
+const SKINS: PlayerSkin[] = ['cassette', 'vinyl', 'turntable', 'jukebox', 'radio', 'scope']
 
 interface PlayerSkinContextValue {
   skin: PlayerSkin
