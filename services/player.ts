@@ -1,4 +1,6 @@
+import { Platform } from 'react-native'
 import { Audio } from 'expo-av'
+import { webAudioEngine } from '@/services/webAudioEngine'
 
 export type PlayerStatus = {
   position: number
@@ -10,8 +12,10 @@ export type PlayerStatus = {
 type PlayerListener = (status: PlayerStatus) => void
 
 const POLL_INTERVAL_MS = 250
+const IS_WEB = Platform.OS === 'web'
 
 class AudioPlayer {
+  // Nativo: expo-av. Web/Tauri: <audio> propio (permite AnalyserNode para el EQ real).
   private sound: Audio.Sound | null = null
   private listeners = new Set<PlayerListener>()
   private pollTimer: ReturnType<typeof setInterval> | null = null
@@ -63,6 +67,13 @@ class AudioPlayer {
   async loadTrack(uri: string): Promise<void> {
     await this.unload()
 
+    if (IS_WEB) {
+      await webAudioEngine.load(uri)
+      await webAudioEngine.setVolume(this._volume)
+      this.startWebPolling()
+      return
+    }
+
     const { sound } = await Audio.Sound.createAsync(
       { uri },
       { shouldPlay: false, progressUpdateIntervalMillis: POLL_INTERVAL_MS, volume: this._volume }
@@ -89,12 +100,22 @@ class AudioPlayer {
   }
 
   async play(): Promise<void> {
+    if (IS_WEB) {
+      await webAudioEngine.play()
+      this.syncFromWebEngine()
+      return
+    }
     await this.sound?.playAsync()
     this._isPlaying = true
     this.notify()
   }
 
   async pause(): Promise<void> {
+    if (IS_WEB) {
+      webAudioEngine.pause()
+      this.syncFromWebEngine()
+      return
+    }
     await this.sound?.pauseAsync()
     this._isPlaying = false
     this.notify()
@@ -110,18 +131,32 @@ class AudioPlayer {
 
   async setVolume(volume: number): Promise<void> {
     this._volume = Math.min(1, Math.max(0, volume))
+    if (IS_WEB) {
+      await webAudioEngine.setVolume(this._volume)
+      return
+    }
     if (this.sound) {
       await this.sound.setVolumeAsync(this._volume)
     }
   }
 
   async seek(positionMs: number): Promise<void> {
+    if (IS_WEB) {
+      webAudioEngine.seek(positionMs)
+      this._position = positionMs
+      this.notify()
+      return
+    }
     await this.sound?.setPositionAsync(positionMs)
     this._position = positionMs
     this.notify()
   }
 
   async unload(): Promise<void> {
+    this.stopWebPolling()
+    if (IS_WEB) {
+      webAudioEngine.unload()
+    }
     if (this.sound) {
       await this.sound.unloadAsync()
       this.sound = null
@@ -130,6 +165,36 @@ class AudioPlayer {
     this._duration = 0
     this._isPlaying = false
     this._isLoaded = false
+    this.notify()
+  }
+
+  /**
+   * Niveles por banda del AnalyserNode (solo web con stream CORS-ok).
+   * null => el EQ usa su animación random de siempre.
+   */
+  getAudioLevels(bands: number): number[] | null {
+    if (!IS_WEB || !this._isLoaded) return null
+    return webAudioEngine.getLevels(bands)
+  }
+
+  private startWebPolling() {
+    this.stopWebPolling()
+    this.syncFromWebEngine(true)
+    this.pollTimer = setInterval(() => this.syncFromWebEngine(), POLL_INTERVAL_MS)
+  }
+
+  private stopWebPolling() {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
+  }
+
+  private syncFromWebEngine(forceLoaded = false) {
+    this._position = webAudioEngine.position
+    this._duration = webAudioEngine.duration
+    this._isPlaying = webAudioEngine.isPlaying
+    if (!this._isLoaded && forceLoaded) this._isLoaded = true
     this.notify()
   }
 }
