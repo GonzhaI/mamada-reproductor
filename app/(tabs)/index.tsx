@@ -16,6 +16,7 @@ import { useLyrics } from '@/hooks/useLyrics'
 import { useLyricsOffset } from '@/hooks/useLyricsOffset'
 import { LyricsView } from '@/components/LyricsView'
 import { sfx } from '@/services/sfxEngine'
+import { usePlayCount } from '@/hooks/usePlayCount'
 
 export default function PlayerScreen() {
   const { colors } = useTheme()
@@ -29,6 +30,7 @@ export default function PlayerScreen() {
     position,
     duration,
     volume,
+    queueCompleted,
     togglePlay,
     seekTo,
     next,
@@ -37,6 +39,7 @@ export default function PlayerScreen() {
   } = usePlayer()
   const coverUrl = currentTrack?.album?.coverUrl ?? undefined
   const accent = useCoverAccent(coverUrl)
+  const playCount = usePlayCount(currentTrack?.id)
   const { lyrics, loading: lyricsLoading } = useLyrics(
     currentTrack?.artists.map(a => a.name).join(', ') ?? null,
     currentTrack?.title ?? null
@@ -117,6 +120,9 @@ export default function PlayerScreen() {
                 coverUrl={currentTrack.album?.coverUrl ?? undefined}
                 trackKey={currentTrack.id}
                 accent={accent}
+                progress={duration > 0 ? position / duration : 0}
+                flipSignal={queueCompleted}
+                plays={playCount}
               />
               {/* Overlay de letra sincronizada sobre la zona del skin */}
               {showLyrics && (

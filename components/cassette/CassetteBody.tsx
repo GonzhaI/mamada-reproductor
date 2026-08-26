@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { View, Text, StyleSheet, Image } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { View, Text, StyleSheet, Image, Animated as RNAnimated, Easing } from 'react-native'
 import { Reel } from './Reel'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
@@ -9,16 +9,73 @@ interface CassetteBodyProps {
   artist: string
   isPlaying: boolean
   coverUrl?: string
+  /** Progreso de la canción 0..1 (cinta pasando de un carrete al otro) */
+  progress?: number
+  /** Al cambiar su valor (>0), el cassette gira mostrando la otra cara */
+  flipSignal?: number
 }
 
-export function CassetteBody({ title, artist, isPlaying, coverUrl }: CassetteBodyProps) {
+export function CassetteBody({
+  title,
+  artist,
+  isPlaying,
+  coverUrl,
+  progress = 0,
+  flipSignal = 0,
+}: CassetteBodyProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
+
+  // Flip SIDE A <-> SIDE B: gira hasta el canto (90°), cambia la etiqueta, vuelve.
+  const [side, setSide] = useState<'A' | 'B'>('A')
+  const flip = useRef(new RNAnimated.Value(0)).current
+  const lastFlip = useRef(flipSignal)
+  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!flipSignal || flipSignal === lastFlip.current) return
+    lastFlip.current = flipSignal
+    RNAnimated.sequence([
+      RNAnimated.timing(flip, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: false,
+      }),
+      RNAnimated.timing(flip, {
+        toValue: 0,
+        duration: 380,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: false,
+      }),
+    ]).start()
+    pendingTimer.current = setTimeout(() => {
+      setSide(s => (s === 'A' ? 'B' : 'A'))
+    }, 260)
+    return () => {
+      if (pendingTimer.current) clearTimeout(pendingTimer.current)
+    }
+  }, [flipSignal, flip])
+
+  const rotateY = flip.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '90deg'],
+  })
+
+  // En cara B la cinta fluye al revés
+  const p = Math.min(1, Math.max(0, progress))
+  const leftFill = side === 'A' ? 1 - p : p
+  const rightFill = side === 'A' ? p : 1 - p
 
   return (
     <View style={styles.cassetteWrapper}>
       {/* Background/Base of Cassette */}
-      <View style={styles.cassetteBase}>
+      <RNAnimated.View
+        style={[
+          styles.cassetteBase,
+          { transform: [{ perspective: 900 }, { rotateY }] },
+        ]}
+      >
         {/* Cassette Top Details */}
         <View style={styles.topDetails}>
           <View style={styles.screw} />
@@ -28,7 +85,7 @@ export function CassetteBody({ title, artist, isPlaying, coverUrl }: CassetteBod
         {/* Main Label Area */}
         <View style={styles.labelArea}>
           <View style={styles.labelHeader}>
-            <Text style={styles.labelSide}>A</Text>
+            <Text style={styles.labelSide}>{side}</Text>
             <View style={styles.labelStripes}>
               <View style={styles.stripe} />
               <View style={styles.stripe} />
@@ -53,17 +110,17 @@ export function CassetteBody({ title, artist, isPlaying, coverUrl }: CassetteBod
             </View>
           )}
 
-          {/* Reel Window cutout */}
+          {/* Reel Window cutout — carretes progresivos: la cinta pasa de lado */}
           <View style={styles.windowCutout}>
             <View style={styles.reelContainer}>
-              <Reel isPlaying={isPlaying} speed={1} size={56} />
+              <Reel isPlaying={isPlaying} speed={1} size={56} fill={leftFill} />
             </View>
             <View style={styles.windowCenter}>
               {/* Tape Path */}
               <View style={styles.tapePath} />
             </View>
             <View style={styles.reelContainer}>
-              <Reel isPlaying={isPlaying} speed={1.05} size={56} />
+              <Reel isPlaying={isPlaying} speed={1.05} size={56} fill={rightFill} />
             </View>
           </View>
         </View>
@@ -76,7 +133,7 @@ export function CassetteBody({ title, artist, isPlaying, coverUrl }: CassetteBod
             <View style={styles.screw} />
           </View>
         </View>
-      </View>
+      </RNAnimated.View>
     </View>
   )
 }

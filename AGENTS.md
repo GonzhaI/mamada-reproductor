@@ -41,6 +41,7 @@ DO NOT use `App.tsx` or `index.ts` as entry — Expo Router manages that.
   - Audio: Jamendo MP3 via `<audio>`/Web Audio API en WebView — funciona nativo sin `expo-av`.
 - **Sesión 2026-08-25:** sistema de **4 skins** de player (cassette/vinyl/tocadiscos/jukebox) + geometría del brazo del tocadiscos corregida + **fix v4 de seek/pausa en YouTube IFrame**. Detalles en las secciones "Skins del player" y "Awesome Mixes".
 - **Sesión 2026-08-25 (b):** 4 features nuevos, un commit cada uno — atajos de teclado + mediaSession (`SystemShortcuts`), **EQ con FFT real** en web (`services/webAudioEngine.ts`), **color dinámico desde la carátula** (`services/coverPalette.ts`) y **letras sincronizadas LRCLIB** (`services/lrclibApi.ts` + `LyricsView`). Detalles en las secciones correspondientes.
+- **Sesión 2026-08-25 (c) — "la app como objeto físico":** 3 tandas commiteadas — (1) foley mecánico con samples CC0 Kenney + modo cinta gastada; (2) skins RADIO FM y OSCILOSCOPIO CRT (#5 y #6) + rack desplegable animado; (3) patina por reproducciones + carretes progresivos con flip SIDE B + modo reloj de mesa. Detalles en las secciones nuevas.
 
 ## Rumbo de diseño (prioridad alta)
 Se compensa el uso de una API genérica con una UI **excesivamente bonita, minimalista y llena de detalles**. Inspiración: `https://github.com/cupidbity/cupid-music-player` (tocadiscos pixel-art). Detalles a portar/estudiar:
@@ -113,8 +114,8 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
 ### Animaciones web (2026-08-24)
 - `react-native-reanimated` estaba CONGELADO en build web para Reel/Equalizer (rotaciones no animaban). Reescritas con el `Animated` built-in de RN (`Animated.loop(timing)`, useNativeDriver:false) en `Reel.tsx` y `Equalizer.tsx`. ProgressBar/Marquee/VolumeSlider sí usan reanimated y funcionan (gestos + estilos animados OK; el problema era solo withRepeat/loop de reanimated en web).
 
-### Skins del player — 4 modelos (2026-08-25)
-- Pieles intercambiables en el tab PLAY: `hooks/usePlayerSkin.tsx` (tipo `PlayerSkin` = `cassette | vinyl | turntable | jukebox`, persistido en AsyncStorage key `player_skin`, provider montado en `_layout.tsx` bajo ThemeProvider). `components/PlayerSkinView.tsx` pinta el switcher (TAPE/VINYL/DECK/JUKE) + spring de escala al cambiar. Para agregar un 5to modelo: tipo+array en usePlayerSkin, case en PlayerSkinView, botón en el switcher.
+### Skins del player — 6 modelos (2026-08-25)
+- Pieles intercambiables en el tab PLAY: `hooks/usePlayerSkin.tsx` (tipo `PlayerSkin` = `cassette | vinyl | turntable | jukebox | radio | scope`, persistido en AsyncStorage key `player_skin`, provider montado en `_layout.tsx` bajo ThemeProvider). `components/PlayerSkinView.tsx` pinta el **rack desplegable**: botón único con el skin activo que abre panel "ELEGÍ LA MÁQUINA" (grid 3×2, entrada escalonada 45ms/item con RNAnimated.timing + backdrop para cerrar). Para agregar un 7mo modelo: tipo+array en usePlayerSkin, entrada en SKIN_META (icon+label), case en PlayerSkinView.
 - `components/vinyl/VinylDisc.tsx` — disco girando (Animated built-in, loop linear 4s), surcos concéntricos, sheen, etiqueta central con carátula o fallback "33 RPM". Props: `isPlaying/coverUrl/title/artist/size`.
 - `components/turntable/Turntable.tsx` — chassis HI-FI con platter (VinylDisc size 195) + brazo animado. **Geometría del brazo (lección dura, no romper):**
   - Pivote real = `transformOrigin: '50% 0%'` sobre el contenedor del brazo alineado al gimbal (`left:6, top:18` dentro del base 36×36). El hack viejo `translateY(20)/rotate/translateY(-20)` rotaba ~60px DEBAJO del pivote visible → movimiento invertido/extraño.
@@ -123,6 +124,23 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
   - IMPORT: VinylDisc vive en `components/vinyl/` — un import relativo `./VinylDisc` desde `components/turntable/` rompe TODO el bundle de Metro sin error claro en runtime (causa raíz de la integración fallida del 2026-08-25).
 - `components/jukebox/Jukebox.tsx` — rocola pixel: arco con glow pulsante al reproducir, tubos de burbujas laterales con onda viajera (UN solo Animated.Value master + interpolación coseno desfasada por burbuja = loop seamless sin N loops), ventana circular con la carátula, placa NOW PLAYING, botonera de colores fija, rejilla y patas.
 - Todas las animaciones nuevas usan `Animated` built-in de RN (reanimated vetado para loops en web — ver Animaciones web).
+
+### Sonido físico: foley + cinta gastada (2026-08-25)
+- `assets/sfx/` — 7 samples CC0 de Kenney (pack interface-sounds, LICENSE incluido): clack/switch/tick/track/eject/load/scratch (~55KB). `.ogg` habilitado vía `metro.config.js` (`assetExts.push('ogg')`).
+- `services/sfxEngine.ts` — AudioContext PROPIO separado del grafo de música. Buffers decodificados lazy (el primer play de cada sonido lo carga para siempre). `sfx.init()` desde SystemShortcuts lee prefs y precarga. Síntesis incluida: `startMotor/setMotorPitch/stopMotor` (sierra 52Hz lowpass, para el tocadiscos) y `setStatic(0..0.25)` (ruido blanco bandpass loop, para la radio). Toggle+volume persistidos (`sfx_enabled`/`sfx_volume`).
+- Foley cableado: play/pause→clack, next/prev y saltos de cola→track, seek suelto→tick, cambio de skin/shuffle/toggles→switch, cerrar mini-player YT→eject, arrancar mix→load. En nativo todo no-op.
+- **Modo cinta gastada** (`hooks/useWornTape.ts` + card en Settings): lowpass 3.2kHz en el grafo (BiquadFilter source→filter→analyser→dest), wow/flutter ~6Hz ±0.7% modulando `playbackRate` por interval 60ms, presets LENTO 0.85 / NORMAL 1.0 / 45 RPM 1.25 con `preservesPitch=false` (la velocidad arrastra el tono como cinta real). El motor memoriza la config y la aplica a cada track nuevo.
+
+### Skins RADIO FM y OSCILOSCOPIO CRT (2026-08-25)
+- `components/radio/Radio.tsx` — dial 88–108MHz arrastrable (Gesture.Pan) con snap a estación al soltar; estaciones = géneros Jamendo (89.1 LOFI / 94.3 PIANO / 99.9 DOWNTEMPO / 105.7 ALEATORIO=shuffle Fisher-Yates de los 3). Estática sintetizada proporcional a la distancia a la estación mientras se sintoniza. ▶ SINTONIZAR carga el género en usePlayer desde un track random (misma estación sonando → pausa). ON-AIR dot rojo cuando reproduce.
+- `components/scope/Oscilloscope.tsx` — canvas DOM inyectado bajo un View (mismo patrón que YtEngine), rAF loop: forma de onda real via `getWaveform()`, fósforo verde con persistencia (velo translúcido en vez de clearRect) + retícula + glow shadowBlur; sin análisis dibuja reposo con ruido leve.
+- `webAudioEngine.getWaveform(points)` — getByteTimeDomainData downsampleado a Float32Array -1..1; passthrough `audioPlayer.getWaveform`.
+
+### Vida propia: patina, carretes progresivos, reloj de mesa (2026-08-25)
+- **Patina** — `services/playStats.ts`: contador persistido por track (`plays:{id}` en AsyncStorage, cache en memoria). Se bumppea SOLO al terminar naturalmente una canción (guard `endedGuard` contra doble-disparo del poll). `hooks/usePlayCount(trackId)` → prop `plays` baja a VinylDisc (directo y vía Turntable): ≥25 plays = rayita blanca fija girando con el disco; ≥75 = segunda rayita + velo oscuro sobre la etiqueta. Solo Jamendo (los mixes YT no distinguen fin natural de salto manual — decidido v1).
+- **Carretes progresivos** — `Reel.tsx` acepta `fill?: number` (0..1): diámetro del spool escala con sqrt(fill) entre 20px y size-8 (área ∝ cinta, como cinta real). CassetteBody recibe `progress` (position/duration): carrete izq arranca lleno y afina, der arranca flaco y engorda. En cara B invierten sentido.
+- **Flip SIDE B** — `usePlayer` expone `queueCompleted` (contador de colas terminadas completas). CassetteBody lo usa como flipSignal: rotateY 0→90° (canto, perspective 900), cambia etiqueta A↔B, vuelve 90°→0°. En cara B el progreso de carretes se invierte.
+- **Reloj de mesa** — `hooks/useIdleActive.ts` (5 min sin pointer/key/move/wheel → true, web only) + `components/DesktopClock.tsx` montado en RootNavigator tras el Stack: overlay opaco zIndex 5000 `pointerEvents="none"` (los clicks atraviesan y el propio listener de idle lo desmonta al primer input). Hora gigante VT323 96px con colon parpadeante + segundos en accent + fecha es-AR + placa NOW PLAYING.
 
 ### Cambio de disco animado (2026-08-25)
 - Al cambiar de canción, cada skin hace su propia coreografía. Mecanismo: prop `trackKey?: string` (=`currentTrack.id`) que baja desde `app/(tabs)/index.tsx` → `PlayerSkinView` → skins. Cada skin compara con un ref (`prevTrackKey`) y solo anima si cambió (sin animación en el mount inicial).

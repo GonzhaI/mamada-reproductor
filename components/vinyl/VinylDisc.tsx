@@ -13,6 +13,8 @@ interface VinylDiscProps {
   trackKey?: string
   /** Color dinámico de la carátula; null = accent del tema */
   accent?: string | null
+  /** Reproducciones completadas del track (patina) */
+  plays?: number
 }
 
 export function VinylDisc({
@@ -23,10 +25,15 @@ export function VinylDisc({
   size = 230,
   trackKey,
   accent,
+  plays = 0,
 }: VinylDiscProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
   const rotation = useRef(new RNAnimated.Value(0)).current
+
+  // Patina: el disco más escuchado agarra rayitas y la etiqueta se apaga
+  const scratched = plays >= 25
+  const worn = plays >= 75
 
   useEffect(() => {
     if (!isPlaying) return undefined
@@ -98,6 +105,10 @@ export function VinylDisc({
         <View style={styles.sheenTop} />
         <View style={styles.sheenBottom} />
 
+        {/* Rayitas de uso: el disco que más suena se nota */}
+        {scratched && <View pointerEvents="none" style={[styles.scratch, styles.scratchA]} />}
+        {worn && <View pointerEvents="none" style={[styles.scratch, styles.scratchB]} />}
+
         {/* Center Label (Etiqueta central) */}
         <View
           style={[
@@ -136,6 +147,7 @@ export function VinylDisc({
             pointerEvents="none"
             style={[styles.labelFlash, { opacity: labelFlash, backgroundColor: accent ?? colors.accent }]}
           />
+          {worn && <View pointerEvents="none" style={styles.labelWear} />}
         </View>
       </RNAnimated.View>
     </View>
@@ -226,5 +238,23 @@ const createStyles = (colors: ThemeColors) =>
     labelFlash: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: colors.accent,
+    },
+    // Rayitas de patina (fijas por seed de uso, giran con el disco)
+    scratch: {
+      position: 'absolute',
+      height: 1,
+      width: '88%',
+      backgroundColor: 'rgba(255, 255, 255, 0.13)',
+    },
+    scratchA: {
+      transform: [{ rotate: '63deg' }],
+    },
+    scratchB: {
+      transform: [{ rotate: '-41deg' }],
+      opacity: 0.8,
+    },
+    labelWear: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0, 0, 0, 0.20)',
     },
   })

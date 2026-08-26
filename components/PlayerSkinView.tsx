@@ -30,6 +30,12 @@ interface PlayerSkinViewProps {
   trackKey?: string
   /** Color dinámico extraído de la carátula; null = accent del tema */
   accent?: string | null
+  /** Progreso de la canción 0..1 (carretes del cassette) */
+  progress?: number
+  /** Contador de colas completadas (flip SIDE B del cassette) */
+  flipSignal?: number
+  /** Reproducciones completadas del track (patina del vinilo) */
+  plays?: number
 }
 
 export function PlayerSkinView({
@@ -39,6 +45,9 @@ export function PlayerSkinView({
   coverUrl,
   trackKey,
   accent,
+  progress,
+  flipSignal,
+  plays,
 }: PlayerSkinViewProps) {
   const { colors } = useTheme()
   const { skin, setSkin, cycleSkin } = usePlayerSkin()
@@ -118,6 +127,7 @@ export function PlayerSkinView({
               size={230}
               trackKey={trackKey}
               accent={accent}
+              plays={plays}
             />
           </View>
         )
@@ -131,6 +141,7 @@ export function PlayerSkinView({
               artist={artist}
               trackKey={trackKey}
               accent={accent}
+              plays={plays}
             />
           </View>
         )
@@ -143,6 +154,8 @@ export function PlayerSkinView({
               artist={artist}
               isPlaying={isPlaying}
               coverUrl={coverUrl}
+              progress={progress}
+              flipSignal={flipSignal}
             />
           </View>
         )

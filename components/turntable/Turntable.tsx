@@ -13,6 +13,8 @@ interface TurntableProps {
   trackKey?: string
   /** Color dinámico de la carátula; null = accent del tema */
   accent?: string | null
+  /** Reproducciones completadas del track (patina) */
+  plays?: number
 }
 
 export function Turntable({
@@ -22,6 +24,7 @@ export function Turntable({
   artist,
   trackKey,
   accent,
+  plays,
 }: TurntableProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
@@ -116,6 +119,7 @@ export function Turntable({
                 size={195}
                 trackKey={trackKey}
                 accent={accent}
+                plays={plays}
               />
             </View>
           </View>

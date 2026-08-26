@@ -7,12 +7,21 @@ interface ReelProps {
   isPlaying: boolean
   speed?: number
   size?: number
+  /** Cuánta cinta tiene enrollada este carrete, 0..1 (afina/engorda el spool) */
+  fill?: number
 }
 
-export function Reel({ isPlaying, speed = 1, size = 48 }: ReelProps) {
+const SPOOL_MIN = 20
+
+export function Reel({ isPlaying, speed = 1, size = 48, fill = 0.5 }: ReelProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
   const rotation = useRef(new RNAnimated.Value(0)).current
+
+  const clamped = Math.min(1, Math.max(0, fill))
+  const spoolMax = size - 8
+  // Área de cinta proporcional al fill (el radio crece con la raíz, como cinta real)
+  const spoolSize = Math.round(SPOOL_MIN + (spoolMax - SPOOL_MIN) * Math.sqrt(clamped))
 
   useEffect(() => {
     if (!isPlaying) return undefined
@@ -35,11 +44,11 @@ export function Reel({ isPlaying, speed = 1, size = 48 }: ReelProps) {
 
   return (
     <View style={[styles.container, { width: size, height: size, borderRadius: size / 2 }]}>
-      {/* Tape rings — visible spool that rotates */}
+      {/* Tape rings — visible spool that rotates; su tamaño = cinta restante */}
       <RNAnimated.View
         style={[
           styles.reel,
-          { width: size - 8, height: size - 8, borderRadius: (size - 8) / 2 },
+          { width: spoolSize, height: spoolSize, borderRadius: spoolSize / 2 },
           { transform: [{ rotate: spin }] },
         ]}
       >

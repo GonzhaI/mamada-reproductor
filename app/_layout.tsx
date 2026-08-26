@@ -11,12 +11,16 @@ import { TitleBar } from '@/components/TitleBar'
 import { SystemShortcuts } from '@/components/SystemShortcuts'
 
 import { PlayerSkinProvider } from '@/hooks/usePlayerSkin'
+import { DesktopClock } from '@/components/DesktopClock'
+import { useIdleActive } from '@/hooks/useIdleActive'
 
 // Prevent the splash screen from auto-hiding before fonts are loaded
 SplashScreen.preventAutoHideAsync()
 
 function RootNavigator() {
   const { colors, themeName } = useTheme()
+  // Modo reloj de mesa: 5 minutos sin tocar nada
+  const idle = useIdleActive()
 
   return (
     <View style={styles.root}>
@@ -26,6 +30,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="playlist/[id]" />
       </Stack>
+      <DesktopClock visible={idle} />
     </View>
   )
 }

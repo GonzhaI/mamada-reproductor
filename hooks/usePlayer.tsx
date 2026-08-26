@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { type Track } from '@/services/types'
 import { audioPlayer } from '@/services/player'
 import { Audio } from 'expo-av'
+import { bumpPlays } from '@/services/playStats'
 
 const FALLBACK_AUDIO_URL = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
 
@@ -14,6 +15,8 @@ interface PlayerContextValue {
   duration: number
   isLoaded: boolean
   volume: number
+  /** veces que la cola terminó de reproducirse completa (flip SIDE B del cassette) */
+  queueCompleted: number
   playTrack: (track: Track, queue?: Track[], startIndex?: number) => Promise<void>
   togglePlay: () => Promise<void>
   seekTo: (seconds: number) => Promise<void>
@@ -47,8 +50,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [duration, setDuration] = useState(0)
   const [isLoaded, setIsLoaded] = useState(false)
   const [volume, setVolumeState] = useState(1)
+  const [queueCompleted, setQueueCompleted] = useState(0)
 
   const loadingRef = useRef(false)
+  // guarda anti doble-disparo del fin natural (el poll puede ver el final 2 veces)
+  const endedGuard = useRef<string | null>(null)
 
   useEffect(() => {
     ensureAudioMode()
@@ -63,9 +69,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       if (!status.isPlaying && status.isLoaded && status.position > 0) {
         const diff = status.duration - status.position
         if (diff < 500) {
-          const nextIdx = queueIndex + 1
-          if (nextIdx < queue.length) {
-            playTrackInternal(queue[nextIdx], queue, nextIdx)
+          const finished = queue[queueIndex]
+          if (finished && endedGuard.current !== finished.id) {
+            endedGuard.current = finished.id
+            // patina: la canción se escuchó completa
+            void bumpPlays(finished.id)
+            const nextIdx = queueIndex + 1
+            if (nextIdx < queue.length) {
+              playTrackInternal(queue[nextIdx], queue, nextIdx)
+            } else {
+              // cola completa: señal para el flip SIDE B del cassette
+              setQueueCompleted(c => c + 1)
+            }
           }
         }
       }
@@ -80,6 +95,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   ) => {
     if (loadingRef.current) return
     loadingRef.current = true
+    endedGuard.current = null
     try {
       if (newQueue) {
         setQueue(newQueue)
@@ -202,6 +218,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     duration,
     isLoaded,
     volume,
+    queueCompleted,
     playTrack,
     togglePlay,
     seekTo,
@@ -214,7 +231,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     shuffleQueue,
     setVolume,
   }), [
-    currentTrack, queue, queueIndex, isPlaying, position, duration, isLoaded, volume,
+    currentTrack, queue, queueIndex, isPlaying, position, duration, isLoaded, volume, queueCompleted,
     playTrack, togglePlay, seekTo, next, previous, addToQueue, removeFromQueue, clearQueue, playAtIndex, shuffleQueue, setVolume,
   ])
 
