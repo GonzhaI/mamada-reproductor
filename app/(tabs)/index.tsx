@@ -13,6 +13,7 @@ import { VolumeSlider } from '@/components/VolumeSlider'
 import { usePlayer } from '@/hooks/usePlayer'
 import { useCoverAccent } from '@/hooks/useCoverAccent'
 import { useLyrics } from '@/hooks/useLyrics'
+import { useLyricsOffset } from '@/hooks/useLyricsOffset'
 import { LyricsView } from '@/components/LyricsView'
 
 export default function PlayerScreen() {
@@ -39,6 +40,11 @@ export default function PlayerScreen() {
     currentTrack?.artists.map(a => a.name).join(', ') ?? null,
     currentTrack?.title ?? null
   )
+  const lyricsKey =
+    currentTrack
+      ? `${currentTrack.artists.map(a => a.name).join(', ')}|${currentTrack.title}`.toLowerCase()
+      : null
+  const { offset: lyricsOffset, nudgeOffset: nudgeLyricsOffset } = useLyricsOffset(lyricsKey)
 
   if (!currentTrack) {
     return (
@@ -117,6 +123,8 @@ export default function PlayerScreen() {
                       position={position}
                       accentColor={accent}
                       onSeekLine={s => void seekTo(s)}
+                      offset={lyricsOffset}
+                      onNudgeOffset={nudgeLyricsOffset}
                     />
                   ) : (
                     <Text style={styles.lyricsOverlayLoading}>BUSCANDO LETRA...</Text>

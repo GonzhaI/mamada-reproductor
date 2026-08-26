@@ -12,6 +12,10 @@ interface LyricsViewProps {
   accentColor?: string | null
   /** Tap en una línea = saltar a ese momento */
   onSeekLine?: (seconds: number) => void
+  /** Desfase aplicado (segundos): la letra se adelanta si es negativa */
+  offset?: number
+  /** Calibración ±1s; si no se pasa, no se muestran los controles */
+  onNudgeOffset?: (delta: number) => void
 }
 
 /**
@@ -19,10 +23,17 @@ interface LyricsViewProps {
  * líneas futuras/pasadas atenuadas. Cada fila mide su propio y (onLayout)
  * para que el scroll sea correcto aunque una línea ocupe dos renglones.
  */
-export function LyricsView({ lines, position, accentColor, onSeekLine }: LyricsViewProps) {
+export function LyricsView({
+  lines,
+  position,
+  accentColor,
+  onSeekLine,
+  offset = 0,
+  onNudgeOffset,
+}: LyricsViewProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
-  const activeIndex = findActiveLine(lines, position)
+  const activeIndex = findActiveLine(lines, position - offset)
 
   const scrollRef = useRef<ScrollView>(null)
   const lineYs = useRef(new Map<number, number>())
@@ -46,6 +57,35 @@ export function LyricsView({ lines, position, accentColor, onSeekLine }: LyricsV
 
   return (
     <View style={styles.container}>
+      {onNudgeOffset && (
+        <View style={styles.offsetRow}>
+          <TouchableOpacity
+            style={styles.offsetBtn}
+            onPress={() => onNudgeOffset(-1)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Text style={styles.offsetBtnText}>-1s</Text>
+          </TouchableOpacity>
+          <Text
+            style={[
+              styles.offsetValue,
+              offset !== 0 && [styles.offsetValueNonZero, accentColor ? { color: accentColor } : null],
+            ]}
+            numberOfLines={1}
+          >
+            {offset > 0 ? `+${offset}s` : `${offset}s`}
+          </Text>
+          <TouchableOpacity
+            style={styles.offsetBtn}
+            onPress={() => onNudgeOffset(1)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Text style={styles.offsetBtnText}>+1s</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -85,6 +125,37 @@ const createStyles = (colors: ThemeColors) =>
     container: {
       flex: 1,
       backgroundColor: colors.bg,
+    },
+    offsetRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      paddingTop: 6,
+      paddingBottom: 2,
+    },
+    offsetBtn: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      borderRadius: 2,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+    },
+    offsetBtnText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 6,
+      color: colors.textMuted,
+    },
+    offsetValue: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 6,
+      color: colors.border,
+      minWidth: 34,
+      textAlign: 'center',
+    },
+    offsetValueNonZero: {
+      color: colors.accent,
     },
     scroll: {
       flex: 1,

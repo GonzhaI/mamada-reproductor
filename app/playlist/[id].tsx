@@ -10,6 +10,7 @@ import { ProgressBar } from '@/components/ProgressBar'
 import { LyricsView } from '@/components/LyricsView'
 import { useYt } from '@/hooks/useYt'
 import { useLyrics } from '@/hooks/useLyrics'
+import { useLyricsOffset } from '@/hooks/useLyricsOffset'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
 
@@ -68,6 +69,9 @@ export default function PlaylistScreen() {
   const playingArtist = yt.mix ? yt.mix.tracks[yt.index]?.artist ?? null : null
   const playingTitle = yt.mix ? yt.mix.tracks[yt.index]?.title ?? null : null
   const { lyrics, loading: lyricsLoading } = useLyrics(playingArtist, playingTitle)
+  const lyricsKey =
+    playingArtist && playingTitle ? `${playingArtist}|${playingTitle}`.toLowerCase() : null
+  const { offset: lyricsOffset, nudgeOffset: nudgeLyricsOffset } = useLyricsOffset(lyricsKey)
 
   if (!mix) {
     return (
@@ -200,6 +204,8 @@ export default function PlaylistScreen() {
                     position={yt.position}
                     accentColor={mix.accent}
                     onSeekLine={yt.seekTo}
+                    offset={lyricsOffset}
+                    onNudgeOffset={nudgeLyricsOffset}
                   />
                 ) : (
                   <Text style={styles.lyricsLoading}>BUSCANDO LETRA...</Text>

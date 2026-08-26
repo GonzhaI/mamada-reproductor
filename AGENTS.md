@@ -144,6 +144,7 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
 - `getLevels(bands)` → bandas con distribución geométrica sobre los bins, ganancia por banda (graves ×0.55 damped, agudos hasta ×1.5), sqrt perceptual, decay VU (`max(nuevo, prev*0.86)`).
 - `services/player.ts` refactor: misma API pública; `Platform.OS === 'web'` delega en webAudioEngine con polling propio (250ms); nativo sigue expo-av intacto. Exporta `audioPlayer.getAudioLevels(bands)` (null en nativo).
 - `Equalizer`: modo reactivo ~22fps via rAF cuando hay niveles; si no, loops random por barra de siempre. Cambio de modo automático y silencioso.
+- **Fix (2026-08-25):** en modo reactivo las barras van DENTRO de `barContainer` (width 6px) — sin el wrapper, `styles.bar` con `width:'100%'` pinta barras gigantes a todo lo ancho. Curva recalibrada: bins limitados a ~9kHz (arriba no hay energía musical), agregación peak×0.65+avg×0.35, ganancia 1.0→2.6 por banda + boost ×1.3 global, smoothing del AnalyserNode bajado a 0.55.
 
 ### Color dinámico desde la carátula (2026-08-25)
 - `services/coverPalette.ts` — color dominante sin dependencias: canvas 24×24, buckets RGB 3 bits/canal ponderados por vivacidad (s×(0.25+v)), normalizado a accent legible en UI oscura (s≥0.45, v∈[0.55,0.85]). Cache Map por URL (incluye negativos). Solo web (nativo→null).
@@ -157,7 +158,7 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
 - `components/LyricsView.tsx` — karaoke pixel (VT323): auto-scroll a la línea activa; cada fila mide su y con `onLayout` (correcto con renglones múltiples); tap en línea = seek. Línea activa en accent (dinámico o del tema), resto atenuado.
 - `playlist/[id].tsx`: toggle "♪ LETRA SINCRONIZADA" bajo el seek (solo si LRCLIB tiene data), panel de 190px con LyricsView, accent DEL MIX como color.
 - Tab PLAY: botón ♪ junto a ≡ en el header (visible solo con letra disponible) + overlay absoluteFill sobre `cassetteContainer` (que ahora es `position:relative` — lección RN web). Sin shift de layout.
-- Deriva conocida: LRC = grabación de estudio, uploads de YT pueden desviar ±1-2s. Aceptado v1.
+- Deriva conocida: LRC = grabación de estudio, uploads de YT pueden desviar ±1-2s. **Calibración manual (2026-08-25):** `hooks/useLyricsOffset.ts` — offset ±10s persistido en AsyncStorage (`lyrics_offset:artista|título`); controles -1s/+1s dentro de LyricsView (fila sobre el scroll). El LRC se cachea CRUDO: el offset se aplica al calcular la línea activa (`position - offset`).
 
 ### Icono de la app
 - Fuente pixel-art: `src-tauri/icon-src.png` (generada a código, script en Temp `gen-icon.ps1` — grilla 64×64 escalada ×16 nearest-neighbor, paleta tema tierra).

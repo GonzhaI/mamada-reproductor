@@ -87,14 +87,15 @@ export function Equalizer({ isPlaying, barCount = 10, accent }: EqualizerProps) 
     <View style={styles.container}>
       {bars.map((i) =>
         reactive ? (
-          <View
-            key={i}
-            style={[
-              styles.bar,
-              { height: Math.max(BAR_MIN_PX, Math.round((levels![i] ?? 0) * BAR_MAX_PX)) },
-              accent ? { backgroundColor: accent } : null,
-            ]}
-          />
+          <View key={i} style={styles.barContainer}>
+            <View
+              style={[
+                styles.bar,
+                { height: Math.max(BAR_MIN_PX, Math.round((levels![i] ?? 0) * BAR_MAX_PX)) },
+                accent ? { backgroundColor: accent } : null,
+              ]}
+            />
+          </View>
         ) : (
           <EqBar key={i} isPlaying={isPlaying} accent={accent} />
         )

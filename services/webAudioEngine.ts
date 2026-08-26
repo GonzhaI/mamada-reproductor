@@ -112,7 +112,7 @@ class WebAudioEngine {
       const source = ctx.createMediaElementSource(el)
       const analyser = ctx.createAnalyser()
       analyser.fftSize = 256
-      analyser.smoothingTimeConstant = 0.7
+      analyser.smoothingTimeConstant = 0.55 // respuesta rápida sin nerviosismo
       source.connect(analyser)
       analyser.connect(ctx.destination)
       this.source = source
@@ -189,26 +189,41 @@ class WebAudioEngine {
   }
 
   /**
-   * Niveles normalizados 0..1 por banda (distribución geométrica sobre los bins
-   * de FFT), con suavizado attack-instantáneo / decay lento estilo VU.
-   * null si no hay análisis disponible.
+   * Niveles normalizados 0..1 por banda, con suavizado attack-instantáneo /
+   * decay lento estilo VU. null si no hay análisis disponible.
+   *
+   * Curva afinada a oído+prueba: solo se mapean los bins con contenido
+   * musical real (hasta ~9kHz; por encima casi no hay energía y desperdician
+   * bandas), agregación mezcla pico+promedio para que las barras reaccionen,
+   * y ganancia generosa porque los bytes de FFT crudos quedan bajos.
    */
   getLevels(bands: number): number[] | null {
     if (!this.analyser || !this.freq) return null
     this.analyser.getByteFrequencyData(this.freq)
 
-    const n = this.freq.length // fftSize/2
-    const maxBin = n - 1
+    // Techo musical ~9kHz (binHz = sampleRate/2 / cantidad de bins)
+    const binHz = this.analyser.context.sampleRate / 2 / this.freq.length
+    const maxBin = Math.max(
+      2,
+      Math.min(this.freq.length - 1, Math.round(9000 / binHz))
+    )
+
     const out: number[] = []
     for (let b = 0; b < bands; b++) {
       const lo = Math.max(1, Math.floor(Math.pow(maxBin, b / bands)))
       const hi = Math.max(lo + 1, Math.floor(Math.pow(maxBin, (b + 1) / bands)))
       let sum = 0
-      for (let i = lo; i < hi; i++) sum += this.freq[i]
+      let peak = 0
+      for (let i = lo; i < hi; i++) {
+        const v = this.freq[i]!
+        sum += v
+        if (v > peak) peak = v
+      }
       const avg = sum / (hi - lo) / 255
-      // Graves mandan menos (saturan) y agudos se realzan (casi no tienen energía)
-      const gain = 0.55 + 0.95 * (b / Math.max(bands - 1, 1))
-      const v = Math.min(1, Math.sqrt(avg * gain))
+      const agg = (peak / 255) * 0.65 + avg * 0.35 // el pico manda, el promedio da cuerpo
+      // Graves levemente damped (saturan), agudos muy realzados (sin energía)
+      const gain = 1.0 + 1.6 * (b / Math.max(bands - 1, 1))
+      const v = Math.min(1, Math.sqrt(agg * gain) * 1.3)
       const prev = this.smooth[b] ?? 0
       const smoothed = v > prev ? v : prev * 0.86 // decay
       this.smooth[b] = smoothed
