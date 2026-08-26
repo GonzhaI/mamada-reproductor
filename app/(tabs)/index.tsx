@@ -12,11 +12,14 @@ import { QueueList } from '@/components/QueueList'
 import { VolumeSlider } from '@/components/VolumeSlider'
 import { usePlayer } from '@/hooks/usePlayer'
 import { useCoverAccent } from '@/hooks/useCoverAccent'
+import { useLyrics } from '@/hooks/useLyrics'
+import { LyricsView } from '@/components/LyricsView'
 
 export default function PlayerScreen() {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
   const [showQueue, setShowQueue] = useState(false)
+  const [showLyrics, setShowLyrics] = useState(false)
   const {
     currentTrack,
     isPlaying,
@@ -32,6 +35,10 @@ export default function PlayerScreen() {
   } = usePlayer()
   const coverUrl = currentTrack?.album?.coverUrl ?? undefined
   const accent = useCoverAccent(coverUrl)
+  const { lyrics, loading: lyricsLoading } = useLyrics(
+    currentTrack?.artists.map(a => a.name).join(', ') ?? null,
+    currentTrack?.title ?? null
+  )
 
   if (!currentTrack) {
     return (
@@ -57,6 +64,16 @@ export default function PlayerScreen() {
           </Text>
           <View style={styles.headerRight}>
             <VolumeSlider value={volume} onChange={setVolume} compact />
+            {(lyrics || lyricsLoading) && (
+              <TouchableOpacity
+                style={[styles.lyricsBtn, showLyrics && styles.lyricsBtnActive]}
+                onPress={() => setShowLyrics(v => !v)}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.lyricsBtnIcon, showLyrics && styles.lyricsBtnIconActive]}>♪</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.queueBtn, showQueue && styles.queueBtnActive]}
               onPress={() => setShowQueue(v => !v)}
@@ -91,6 +108,21 @@ export default function PlayerScreen() {
                 trackKey={currentTrack.id}
                 accent={accent}
               />
+              {/* Overlay de letra sincronizada sobre la zona del skin */}
+              {showLyrics && (
+                <View style={styles.lyricsOverlay}>
+                  {lyrics ? (
+                    <LyricsView
+                      lines={lyrics.lines}
+                      position={position}
+                      accentColor={accent}
+                      onSeekLine={s => void seekTo(s)}
+                    />
+                  ) : (
+                    <Text style={styles.lyricsOverlayLoading}>BUSCANDO LETRA...</Text>
+                  )}
+                </View>
+              )}
             </View>
 
             {/* Equalizer */}
@@ -190,6 +222,47 @@ const createStyles = (colors: ThemeColors) =>
     queueBtnIconActive: {
       color: colors.accent,
     },
+    lyricsBtn: {
+      width: 32,
+      height: 32,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    lyricsBtnActive: {
+      borderColor: colors.accent,
+      backgroundColor: colors.surfaceAlt,
+    },
+    lyricsBtnIcon: {
+      fontSize: 16,
+      lineHeight: 18,
+      color: colors.textMuted,
+    },
+    lyricsBtnIconActive: {
+      color: colors.accent,
+    },
+    lyricsOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderWidth: 2,
+      borderColor: colors.border,
+      borderRadius: 4,
+      backgroundColor: colors.bg,
+      overflow: 'hidden',
+    },
+    lyricsOverlayLoading: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 16,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: 40,
+      letterSpacing: 1,
+    },
     queueContainer: {
       flex: 1,
       marginVertical: 8,
@@ -197,6 +270,8 @@ const createStyles = (colors: ThemeColors) =>
     cassetteContainer: {
       alignItems: 'center',
       marginVertical: 16,
+      position: 'relative',
+      width: '100%',
     },
     eqContainer: {
       alignItems: 'center',

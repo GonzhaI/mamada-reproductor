@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -7,7 +7,9 @@ import { ART_COVERS, DITHERED_COVERS } from '@/services/mixCovers'
 import { openExternal } from '@/services/openExternal'
 import { CrossfadeCover } from '@/components/CrossfadeCover'
 import { ProgressBar } from '@/components/ProgressBar'
+import { LyricsView } from '@/components/LyricsView'
 import { useYt } from '@/hooks/useYt'
+import { useLyrics } from '@/hooks/useLyrics'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
 
@@ -60,6 +62,12 @@ export default function PlaylistScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const mix = getAwesomeMix(id)
   const yt = useYt()
+  const [showLyrics, setShowLyrics] = useState(false)
+
+  // Letra del track sonando (hooks antes de cualquier early-return)
+  const playingArtist = yt.mix ? yt.mix.tracks[yt.index]?.artist ?? null : null
+  const playingTitle = yt.mix ? yt.mix.tracks[yt.index]?.title ?? null : null
+  const { lyrics, loading: lyricsLoading } = useLyrics(playingArtist, playingTitle)
 
   if (!mix) {
     return (
@@ -164,6 +172,38 @@ export default function PlaylistScreen() {
             {isActiveMix && yt.duration > 0 && (
               <View style={styles.seekWrap}>
                 <ProgressBar currentTime={yt.position} duration={yt.duration} onSeek={yt.seekTo} />
+              </View>
+            )}
+
+            {/* Toggle de letra sincronizada (solo si LRCLIB tiene la canción) */}
+            {isActiveMix && (lyrics || lyricsLoading) && (
+              <TouchableOpacity
+                style={[styles.lyricsToggle, showLyrics && styles.lyricsToggleActive]}
+                onPress={() => setShowLyrics(v => !v)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.lyricsToggleText,
+                    showLyrics && [styles.lyricsToggleTextActive, { color: mix.accent }],
+                  ]}
+                >
+                  ♪ {showLyrics ? 'OCULTAR LETRA' : 'LETRA SINCRONIZADA'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {isActiveMix && showLyrics && (
+              <View style={styles.lyricsPanel}>
+                {lyrics ? (
+                  <LyricsView
+                    lines={lyrics.lines}
+                    position={yt.position}
+                    accentColor={mix.accent}
+                    onSeekLine={yt.seekTo}
+                  />
+                ) : (
+                  <Text style={styles.lyricsLoading}>BUSCANDO LETRA...</Text>
+                )}
               </View>
             )}
 
@@ -277,6 +317,43 @@ const createStyles = (colors: ThemeColors) =>
     },
     seekWrap: {
       paddingHorizontal: 24,
+    },
+    lyricsToggle: {
+      alignSelf: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 3,
+    },
+    lyricsToggleActive: {
+      borderColor: colors.accent,
+    },
+    lyricsToggleText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 6,
+      color: colors.textMuted,
+      letterSpacing: 1,
+    },
+    lyricsToggleTextActive: {
+      color: colors.accent,
+    },
+    lyricsPanel: {
+      height: 190,
+      borderWidth: 2,
+      borderColor: colors.border,
+      borderRadius: 4,
+      backgroundColor: colors.bg,
+      overflow: 'hidden',
+    },
+    lyricsLoading: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 16,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: 24,
+      letterSpacing: 1,
     },
     sectionLine: {
       height: 1,
