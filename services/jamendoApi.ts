@@ -107,6 +107,10 @@ export const GENRES: ReadonlyArray<{ id: string; name: string; tags: string }> =
   { id: 'lofi', name: 'LOFI CHILL', tags: 'lofi' },
   { id: 'piano', name: 'PIANO', tags: 'piano' },
   { id: 'downtempo', name: 'DOWNTEMPO', tags: 'downtempo' },
+  { id: 'ambient', name: 'AMBIENT', tags: 'ambient' },
+  { id: 'lounge', name: 'LOUNGE', tags: 'lounge' },
+  { id: 'funk', name: 'FUNK', tags: 'funk' },
+  { id: 'blues', name: 'BLUES', tags: 'blues' },
 ]
 
 export async function getGenreTracks(genreId: string): Promise<Track[]> {

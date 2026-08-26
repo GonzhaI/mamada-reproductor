@@ -55,6 +55,46 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const loadingRef = useRef(false)
   // guarda anti doble-disparo del fin natural (el poll puede ver el final 2 veces)
   const endedGuard = useRef<string | null>(null)
+  // --- red anti-track-mudo ---
+  const currentTrackIdRef = useRef<string | null>(null)
+  const watchdogTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const fallbackTried = useRef<Set<string>>(new Set())
+  const nextRef = useRef<() => Promise<void>>(async () => {})
+
+  /**
+   * Watchdog de tracks muertos: el CDN de Jamendo omite ACAO al azar en algunas
+   * respuestas -> el <audio crossOrigin> se bloquea y la canción queda muda.
+   * t+2.5s: si sigue sin sonar Y en el arranque (pos<3s), recarga por la URL
+   * de emergencia (una sola vez por track). t+5.5s: si sigue muda, next().
+   */
+  const armDeadTrackWatchdog = useCallback((trackId: string) => {
+    watchdogTimers.current.forEach(clearTimeout)
+    const check1 = setTimeout(() => {
+      if (endedGuard.current === trackId) return
+      if (audioPlayer.isPlaying || !audioPlayer.isLoaded) return
+      if (currentTrackIdRef.current !== trackId) return
+      if (audioPlayer.position > 3) return // pausa humana a mitad: no tocar
+      if (!fallbackTried.current.has(trackId)) {
+        fallbackTried.current.add(trackId)
+        void (async () => {
+          try {
+            await audioPlayer.loadTrack(FALLBACK_AUDIO_URL)
+            await audioPlayer.play()
+          } catch {
+            // check2 decide
+          }
+        })()
+      }
+    }, 2500)
+    const check2 = setTimeout(() => {
+      if (endedGuard.current === trackId) return
+      if (audioPlayer.isPlaying || !audioPlayer.isLoaded) return
+      if (currentTrackIdRef.current !== trackId) return
+      if (audioPlayer.position > 3) return
+      void nextRef.current()
+    }, 5500)
+    watchdogTimers.current = [check1, check2]
+  }, [])
 
   useEffect(() => {
     ensureAudioMode()
@@ -96,6 +136,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (loadingRef.current) return
     loadingRef.current = true
     endedGuard.current = null
+    currentTrackIdRef.current = track.id
     try {
       if (newQueue) {
         setQueue(newQueue)
@@ -110,13 +151,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
       await audioPlayer.loadTrack(track.audio ?? FALLBACK_AUDIO_URL)
       await audioPlayer.play()
+      armDeadTrackWatchdog(track.id)
     } catch {
       setIsPlaying(false)
       setIsLoaded(false)
     } finally {
       loadingRef.current = false
     }
-  }, [])
+  }, [armDeadTrackWatchdog])
 
   const playTrack = useCallback(async (
     track: Track,
@@ -208,6 +250,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setVolumeState(v)
     audioPlayer.setVolume(v)
   }, [])
+
+  // ref fresca para el watchdog de tracks muertos (evita closures stale)
+  nextRef.current = next
 
   const value = useMemo<PlayerContextValue>(() => ({
     currentTrack,

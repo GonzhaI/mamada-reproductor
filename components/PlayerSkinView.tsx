@@ -208,7 +208,7 @@ export function PlayerSkinView({
         <View style={styles.rackBackdrop}>
           <TouchableOpacity style={styles.rackBackdropTouch} activeOpacity={1} onPress={() => setRackOpen(false)} />
           <View style={styles.rackPanel} onLayout={() => startRackStagger()}>
-            <Text style={styles.rackTitle}>ELEGÍ LA MÁQUINA</Text>
+            <Text style={styles.rackTitle}>PICK YOUR MACHINE</Text>
             <View style={styles.rackGrid}>
               {SKIN_META.map((meta, i) => {
                 const isActive = meta.id === skin

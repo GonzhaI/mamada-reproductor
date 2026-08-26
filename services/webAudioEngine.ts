@@ -129,10 +129,8 @@ class WebAudioEngine {
   }
 
   async load(uri: string): Promise<void> {
+    this.stopWow(false)
     this.teardownElement()
-
-    const el = new Audio()
-    el.preload = 'auto'
 
     let corsOk = false
     try {
@@ -140,30 +138,53 @@ class WebAudioEngine {
     } catch {
       corsOk = false
     }
-    if (corsOk) el.crossOrigin = 'anonymous'
 
-    this.analysable = false
-    this.smooth = []
-    this.el = el
+    try {
+      await this.mountElement(uri, corsOk)
+      // El elemento ya cargó: recién ahora cablear el grafo (si el probe dio OK).
+      if (corsOk) this.wireAnalyser()
+      this.applyWorn()
+    } catch {
+      if (!corsOk) throw new Error('audio load failed')
+      // FIX: el CDN de Jamendo omite ACAO en ALGUNAS respuestas (aleatorio por
+      // request, verificado con GET+Origin). Con crossOrigin puesto, el navegador
+      // bloquea ese stream -> error. Reintento UNA vez SIN crossOrigin: pierde el
+      // análisis FFT para este track pero SUENA.
+      this.teardownElement()
+      await this.mountElement(uri, false)
+      this.applyWorn()
+    }
+  }
 
-    await new Promise<void>(resolve => {
+  /** Crea el <audio> y espera metadata/canplay. Rejecta si el elemento dispara error. */
+  private mountElement(uri: string, withCors: boolean): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const el = new Audio()
+      el.preload = 'auto'
+      if (withCors) el.crossOrigin = 'anonymous'
+      this.analysable = false
+      this.smooth = []
+      this.el = el
+
       let settled = false
       const done = () => {
-        if (settled) return
-        settled = true
-        resolve()
+        if (!settled) {
+          settled = true
+          resolve()
+        }
+      }
+      const fail = () => {
+        if (!settled) {
+          settled = true
+          reject(new Error('media element error'))
+        }
       }
       el.addEventListener('loadedmetadata', done, { once: true })
       el.addEventListener('canplay', done, { once: true })
-      el.addEventListener('error', done, { once: true })
+      el.addEventListener('error', fail, { once: true })
       setTimeout(done, 8000) // streams lentos: seguir igual
       el.src = uri
     })
-
-    // El elemento ya cargó: recién ahora cablear el grafo (si el probe dio OK).
-    if (corsOk) this.wireAnalyser(el)
-    // Aplicar modo cinta (velocidad/pitch) al elemento fresco
-    this.applyWorn()
   }
 
   private ensureCtx(): AudioContext | null {
@@ -181,7 +202,9 @@ class WebAudioEngine {
     }
   }
 
-  private wireAnalyser(el: HTMLAudioElement): void {
+  private wireAnalyser(): void {
+    const el = this.el
+    if (!el) return
     const ctx = this.ensureCtx()
     if (!ctx) return
     try {
