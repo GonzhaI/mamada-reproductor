@@ -40,6 +40,7 @@ DO NOT use `App.tsx` or `index.ts` as entry — Expo Router manages that.
   - Pasos: `npm create tauri-app@latest` en subcarpeta → configurar `tauri.conf.json` → `cargo tauri build`.
   - Audio: Jamendo MP3 via `<audio>`/Web Audio API en WebView — funciona nativo sin `expo-av`.
 - **Sesión 2026-08-25:** sistema de **4 skins** de player (cassette/vinyl/tocadiscos/jukebox) + geometría del brazo del tocadiscos corregida + **fix v4 de seek/pausa en YouTube IFrame**. Detalles en las secciones "Skins del player" y "Awesome Mixes".
+- **Sesión 2026-08-25 (b):** 4 features nuevos, un commit cada uno — atajos de teclado + mediaSession (`SystemShortcuts`), **EQ con FFT real** en web (`services/webAudioEngine.ts`), **color dinámico desde la carátula** (`services/coverPalette.ts`) y **letras sincronizadas LRCLIB** (`services/lrclibApi.ts` + `LyricsView`). Detalles en las secciones correspondientes.
 
 ## Rumbo de diseño (prioridad alta)
 Se compensa el uso de una API genérica con una UI **excesivamente bonita, minimalista y llena de detalles**. Inspiración: `https://github.com/cupidbity/cupid-music-player` (tocadiscos pixel-art). Detalles a portar/estudiar:
@@ -129,6 +130,34 @@ Feature branches from `develop`. PRs → `develop`. Only merge `develop` → `ma
 - `Turntable`: el brazo levanta (240ms) → espera 380ms → cae sobre el disco nuevo (640ms). **UN SOLO useEffect maneja `armAnim`** mirando `[isPlaying, trackKey]` — nunca haber dos efectos escribiendo el mismo Animated.Value (si no, los timings se interleavean y tiembla). El burst del VinylDisc interno llega vía `trackKey` pasada al platter.
 - `Jukebox`: flash accent en la ventana circular (overlay 0.7→0, 650ms).
 - Cassette: solo el pop genérico (los carretes ya reinician solos con isPlaying).
+
+### Atajos de teclado + mediaSession (2026-08-25)
+- `components/SystemShortcuts.tsx` — montado en `_layout.tsx` bajo `YtProvider`, renderiza null. Motor activo = YouTube si hay mix, si no Jamendo.
+- Teclado (web/Tauri): Espacio=play/pause, ←→=seek ±5s (repeat permitido para scrub), ↑↓=volumen ±0.1 (siempre Jamendo). `preventDefault` en todo; ignora INPUT/TEXTAREA/modificadores; Espacio ignora `e.repeat`.
+- mediaSession: metadata (título/artista/álbum + artwork: carátula del mix o coverUrl Jamendo) + handlers play/pause/prev/next/seekto → teclas multimedia de Windows y popup del SO controlan la app.
+- Patrón clave: acciones frescas en un `actionsRef` reescrito cada render; listeners/handlers registrados UNA vez delegando en el ref. Nunca capturar closures de estado.
+- Todo no-op fuera de web (`'mediaSession' in navigator` / `Platform.OS !== 'web'`).
+
+### EQ reactivo con FFT real (2026-08-25)
+- `services/webAudioEngine.ts` — motor `<audio>` propio para web/Tauri (expo-av no expone su elemento interno → imposible AnalyserNode). Misma interfaz conceptual que expo-av: load/play/pause/seek/setVolume/unload + position/duration/isPlaying.
+- **Probe CORS antes del stream**: HEAD (fallback GET con Range). Si OK → `crossOrigin='anonymous'` + grafo Web Audio (source→analyser→destination, fftSize 256, smoothing 0.7). Si falla → reproducción plana sin análisis. Verificado en vivo: `prod-1.storage.jamendo.com` manda ACAO.
+- `getLevels(bands)` → bandas con distribución geométrica sobre los bins, ganancia por banda (graves ×0.55 damped, agudos hasta ×1.5), sqrt perceptual, decay VU (`max(nuevo, prev*0.86)`).
+- `services/player.ts` refactor: misma API pública; `Platform.OS === 'web'` delega en webAudioEngine con polling propio (250ms); nativo sigue expo-av intacto. Exporta `audioPlayer.getAudioLevels(bands)` (null en nativo).
+- `Equalizer`: modo reactivo ~22fps via rAF cuando hay niveles; si no, loops random por barra de siempre. Cambio de modo automático y silencioso.
+
+### Color dinámico desde la carátula (2026-08-25)
+- `services/coverPalette.ts` — color dominante sin dependencias: canvas 24×24, buckets RGB 3 bits/canal ponderados por vivacidad (s×(0.25+v)), normalizado a accent legible en UI oscura (s≥0.45, v∈[0.55,0.85]). Cache Map por URL (incluye negativos). Solo web (nativo→null).
+- `hooks/useCoverAccent(coverUrl)` — wrapper reactivo con cancelación.
+- Aplicación sutil vía prop `accent?: string | null` (null = accent del tema): flash/etiqueta fallback del vinilo, strobe del deck, glow+burbujas del jukebox, barras del EQ.
+- Canvas tainted / imagen rota / timeout ⇒ null silencioso, nunca rompe la UI.
+
+### Letras sincronizadas LRCLIB (2026-08-25)
+- `services/lrclibApi.ts` — lrclib.net gratis/sin key/CORS abierto. Búsqueda por METADATOS (artista+título): `/api/get` exacto → fallback `/api/search` difuso. Parseo LRC multi-timestamp `[mm:ss.xx]`. Cache por clave `artista|título` lowercase. `findActiveLine(lines, pos)` búsqueda binaria (-1 antes de la primera línea).
+- Funciona para **Awesome Mixes** (artistas/títulos verificados en awesomeMixData.ts — probado 5/5 en Vol.1) Y para Jamendo: la fuente es metadato, no audio.
+- `components/LyricsView.tsx` — karaoke pixel (VT323): auto-scroll a la línea activa; cada fila mide su y con `onLayout` (correcto con renglones múltiples); tap en línea = seek. Línea activa en accent (dinámico o del tema), resto atenuado.
+- `playlist/[id].tsx`: toggle "♪ LETRA SINCRONIZADA" bajo el seek (solo si LRCLIB tiene data), panel de 190px con LyricsView, accent DEL MIX como color.
+- Tab PLAY: botón ♪ junto a ≡ en el header (visible solo con letra disponible) + overlay absoluteFill sobre `cassetteContainer` (que ahora es `position:relative` — lección RN web). Sin shift de layout.
+- Deriva conocida: LRC = grabación de estudio, uploads de YT pueden desviar ±1-2s. Aceptado v1.
 
 ### Icono de la app
 - Fuente pixel-art: `src-tauri/icon-src.png` (generada a código, script en Temp `gen-icon.ps1` — grilla 64×64 escalada ×16 nearest-neighbor, paleta tema tierra).
