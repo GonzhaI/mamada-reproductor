@@ -7,13 +7,15 @@ import { audioPlayer } from '@/services/player'
 interface EqualizerProps {
   isPlaying: boolean
   barCount?: number
+  /** Color dinámico de la carátula; null = eqBar del tema */
+  accent?: string | null
 }
 
 const BAR_MIN_PX = 4
 const BAR_MAX_PX = 26
 const REACTIVE_FRAME_MS = 45
 
-function EqBar({ isPlaying }: { isPlaying: boolean }) {
+function EqBar({ isPlaying, accent }: { isPlaying: boolean; accent?: string | null }) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
   const height = useRef(new RNAnimated.Value(BAR_MIN_PX)).current
@@ -46,12 +48,12 @@ function EqBar({ isPlaying }: { isPlaying: boolean }) {
 
   return (
     <View style={styles.barContainer}>
-      <RNAnimated.View style={[styles.bar, { height }]} />
+      <RNAnimated.View style={[styles.bar, { height }, accent ? { backgroundColor: accent } : null]} />
     </View>
   )
 }
 
-export function Equalizer({ isPlaying, barCount = 10 }: EqualizerProps) {
+export function Equalizer({ isPlaying, barCount = 10, accent }: EqualizerProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
   const bars = Array.from({ length: barCount }, (_, i) => i)
@@ -87,10 +89,14 @@ export function Equalizer({ isPlaying, barCount = 10 }: EqualizerProps) {
         reactive ? (
           <View
             key={i}
-            style={[styles.bar, { height: Math.max(BAR_MIN_PX, Math.round((levels![i] ?? 0) * BAR_MAX_PX)) }]}
+            style={[
+              styles.bar,
+              { height: Math.max(BAR_MIN_PX, Math.round((levels![i] ?? 0) * BAR_MAX_PX)) },
+              accent ? { backgroundColor: accent } : null,
+            ]}
           />
         ) : (
-          <EqBar key={i} isPlaying={isPlaying} />
+          <EqBar key={i} isPlaying={isPlaying} accent={accent} />
         )
       )}
     </View>

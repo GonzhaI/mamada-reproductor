@@ -11,6 +11,8 @@ interface VinylDiscProps {
   size?: number
   /** Identidad del track actual: al cambiar, el disco hace un burst de rotación */
   trackKey?: string
+  /** Color dinámico de la carátula; null = accent del tema */
+  accent?: string | null
 }
 
 export function VinylDisc({
@@ -20,6 +22,7 @@ export function VinylDisc({
   artist,
   size = 230,
   trackKey,
+  accent,
 }: VinylDiscProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
@@ -100,6 +103,7 @@ export function VinylDisc({
           style={[
             styles.label,
             { width: labelSize, height: labelSize, borderRadius: labelSize / 2 },
+            !coverUrl && accent ? { backgroundColor: accent } : null,
           ]}
         >
           {coverUrl ? (
@@ -130,7 +134,7 @@ export function VinylDisc({
           {/* Flash al cambiar de disco */}
           <RNAnimated.View
             pointerEvents="none"
-            style={[styles.labelFlash, { opacity: labelFlash }]}
+            style={[styles.labelFlash, { opacity: labelFlash, backgroundColor: accent ?? colors.accent }]}
           />
         </View>
       </RNAnimated.View>

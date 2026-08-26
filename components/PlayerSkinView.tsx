@@ -15,6 +15,8 @@ interface PlayerSkinViewProps {
   coverUrl?: string
   /** Identidad del track actual: al cambiar dispara la animación de cambio de disco */
   trackKey?: string
+  /** Color dinámico extraído de la carátula; null = accent del tema */
+  accent?: string | null
 }
 
 export function PlayerSkinView({
@@ -23,6 +25,7 @@ export function PlayerSkinView({
   isPlaying,
   coverUrl,
   trackKey,
+  accent,
 }: PlayerSkinViewProps) {
   const { colors } = useTheme()
   const { skin, setSkin, cycleSkin } = usePlayerSkin()
@@ -71,6 +74,7 @@ export function PlayerSkinView({
               artist={artist}
               size={230}
               trackKey={trackKey}
+              accent={accent}
             />
           </View>
         )
@@ -83,6 +87,7 @@ export function PlayerSkinView({
               title={title}
               artist={artist}
               trackKey={trackKey}
+              accent={accent}
             />
           </View>
         )
@@ -107,6 +112,7 @@ export function PlayerSkinView({
               title={title}
               artist={artist}
               trackKey={trackKey}
+              accent={accent}
             />
           </View>
         )

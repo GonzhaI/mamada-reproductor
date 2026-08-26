@@ -11,6 +11,8 @@ interface TurntableProps {
   artist?: string
   /** Identidad del track actual: al cambiar, el brazo levanta y vuelve a caer */
   trackKey?: string
+  /** Color dinámico de la carátula; null = accent del tema */
+  accent?: string | null
 }
 
 export function Turntable({
@@ -19,6 +21,7 @@ export function Turntable({
   title,
   artist,
   trackKey,
+  accent,
 }: TurntableProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
@@ -112,6 +115,7 @@ export function Turntable({
                 artist={artist}
                 size={195}
                 trackKey={trackKey}
+                accent={accent}
               />
             </View>
           </View>
@@ -157,7 +161,7 @@ export function Turntable({
                   styles.strobeLamp,
                   {
                     opacity: strobeAnim,
-                    backgroundColor: isPlaying ? colors.accent : colors.border,
+                    backgroundColor: isPlaying ? accent ?? colors.accent : colors.border,
                   },
                 ]}
               />

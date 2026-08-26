@@ -11,6 +11,7 @@ import { MarqueeText } from '@/components/MarqueeText'
 import { QueueList } from '@/components/QueueList'
 import { VolumeSlider } from '@/components/VolumeSlider'
 import { usePlayer } from '@/hooks/usePlayer'
+import { useCoverAccent } from '@/hooks/useCoverAccent'
 
 export default function PlayerScreen() {
   const { colors } = useTheme()
@@ -29,6 +30,8 @@ export default function PlayerScreen() {
     previous,
     setVolume,
   } = usePlayer()
+  const coverUrl = currentTrack?.album?.coverUrl ?? undefined
+  const accent = useCoverAccent(coverUrl)
 
   if (!currentTrack) {
     return (
@@ -86,12 +89,13 @@ export default function PlayerScreen() {
                 isPlaying={isPlaying}
                 coverUrl={currentTrack.album?.coverUrl ?? undefined}
                 trackKey={currentTrack.id}
+                accent={accent}
               />
             </View>
 
             {/* Equalizer */}
             <View style={styles.eqContainer}>
-              <Equalizer isPlaying={isPlaying} barCount={12} />
+              <Equalizer isPlaying={isPlaying} barCount={12} accent={accent} />
             </View>
 
             {/* Track Info */}
