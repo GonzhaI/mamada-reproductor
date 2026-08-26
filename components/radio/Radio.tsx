@@ -86,6 +86,16 @@ export function Radio() {
   // Al desmontar el skin: cortar estática
   useEffect(() => () => sfx.setStatic(0), [])
 
+  // Durante el drag muestro frecuencia continua (sin snap).
+  // IMPORT: declarar ANTES del gesto — reanimated captura las closures al
+  // CREAR el worklet; una const de más abajo está en TDZ y revienta el mount.
+  const setFreqLive = useCallback(
+    (ratio: number) => {
+      setFreq(ratio * (FREQ_MAX - FREQ_MIN) + FREQ_MIN)
+    },
+    []
+  )
+
   const commitTune = useCallback(
     (ratio: number) => {
       dragRatio.value = -1
@@ -110,11 +120,6 @@ export function Radio() {
     .onEnd(() => {
       runOnJS(commitTune)(dragRatio.value)
     })
-
-  // Durante el drag muestro frecuencia continua (sin snap)
-  const setFreqLive = (ratio: number) => {
-    setFreq(ratio * (FREQ_MAX - FREQ_MIN) + FREQ_MIN)
-  }
 
   const needleStyle = useAnimatedStyle(() => {
     const r = dragRatio.value >= 0 ? dragRatio.value : (freq - FREQ_MIN) / (FREQ_MAX - FREQ_MIN)
