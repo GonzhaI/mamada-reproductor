@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { getAwesomeMix, type AwesomeMixTrack } from '@/services/awesomeMixData'
+import { parseDuration, formatTotal } from '@/services/mixStats'
 import { ART_COVERS, DITHERED_COVERS } from '@/services/mixCovers'
 import { openExternal } from '@/services/openExternal'
 import { CrossfadeCover } from '@/components/CrossfadeCover'
@@ -90,6 +91,13 @@ export default function PlaylistScreen() {
   const isActiveMix = yt.mix?.id === mix.id
   const currentIndex = isActiveMix ? yt.index : -1
   const current = isActiveMix ? mix.tracks[yt.index] : null
+  const totalSec = useMemo(() => mix.tracks.reduce((a, t) => a + parseDuration(t.duration), 0), [mix])
+  const resumeHere = yt.resume?.mixId === mix.id && !isActiveMix ? yt.resume : null
+
+  const handleShuffle = () => {
+    sfx.play('switch')
+    yt.shuffleStart(mix.id)
+  }
 
   const handleTrackPress = (_track: AwesomeMixTrack, i: number) => {
     if (isActiveMix) {
@@ -151,8 +159,23 @@ export default function PlaylistScreen() {
               </View>
               <Text style={[styles.mixMovie, { color: mix.accent }]}>{mix.movie.toUpperCase()}</Text>
               <Text style={styles.mixMeta}>
-                {mix.year} · {mix.tracks.length} TRACKS
+                {mix.year} · {mix.tracks.length} TRACKS{totalSec > 0 ? ` · ${formatTotal(totalSec)}` : ''}
               </Text>
+            </View>
+            {/* Shuffle + resume */}
+            <View style={styles.mixActions}>
+              <TouchableOpacity style={styles.shuffleBtn} onPress={handleShuffle} activeOpacity={0.7}>
+                <Text style={styles.shuffleText}>⇄ {isActiveMix && yt.shuffled ? 'SHUFFLED ✓' : 'SHUFFLE'}</Text>
+              </TouchableOpacity>
+              {resumeHere && (
+                <TouchableOpacity
+                  style={styles.shuffleBtn}
+                  onPress={() => { sfx.play('load'); yt.start(mix.id, resumeHere.index) }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.shuffleText}>↺ RESUME #{resumeHere.index + 1}</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Controles del reproductor YT */}
@@ -296,6 +319,25 @@ const createStyles = (colors: ThemeColors) =>
     mixMeta: {
       fontFamily: 'VT323_400Regular',
       fontSize: 16,
+      color: colors.textMuted,
+      letterSpacing: 1,
+    },
+    mixActions: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    shuffleBtn: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 3,
+    },
+    shuffleText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 6,
       color: colors.textMuted,
       letterSpacing: 1,
     },

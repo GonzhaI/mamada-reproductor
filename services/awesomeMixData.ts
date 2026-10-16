@@ -37,7 +37,7 @@ export const AWESOME_MIXES: Record<string, AwesomeMixMeta> = {
       { n: 7, title: 'I Want You Back', artist: 'The Jackson 5', duration: '2:58', videoId: 'UvynvnxZJ3Q' },
       { n: 8, title: 'Come and Get Your Love', artist: 'Redbone', duration: '3:26', videoId: 'rsf_gTZG4cI' },
       { n: 9, title: 'Cherry Bomb', artist: 'The Runaways', duration: '2:17', videoId: 'Kdo8k3Q_RZ0' },
-      { n: 10, title: 'Escape (The PiÃ±a Colada Song)', artist: 'Rupert Holmes', duration: '4:37', videoId: '_f1IrtS83EA' },
+      { n: 10, title: 'Escape (The Piña Colada Song)', artist: 'Rupert Holmes', duration: '4:37', videoId: '_f1IrtS83EA' },
       { n: 11, title: 'O-o-h Child', artist: 'Five Stairsteps', duration: '3:13', videoId: 'dguz0IsCuKU' },
       { n: 12, title: 'Ain\'t No Mountain High Enough', artist: 'Marvin Gaye and Tammi Terrell', duration: '2:29', videoId: 'ABfQuZqq8wg' },
     ],

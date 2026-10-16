@@ -7,6 +7,7 @@ import { CassetteBody } from '@/components/cassette/CassetteBody'
 import { VinylDisc } from '@/components/vinyl/VinylDisc'
 import { Turntable } from '@/components/turntable/Turntable'
 import { Jukebox } from '@/components/jukebox/Jukebox'
+import { Boombox } from '@/components/boombox/Boombox'
 import { Radio } from '@/components/radio/Radio'
 import { Oscilloscope } from '@/components/scope/Oscilloscope'
 import { sfx } from '@/services/sfxEngine'
@@ -19,6 +20,7 @@ const SKIN_META: { id: PlayerSkin; icon: string; label: string }[] = [
   { id: 'jukebox', icon: '🎶', label: 'JUKE' },
   { id: 'radio', icon: '📻', label: 'RADIO' },
   { id: 'scope', icon: '📺', label: 'SCOPE' },
+  { id: 'boombox', icon: '🔊', label: 'BOOMBOX' },
 ]
 
 interface PlayerSkinViewProps {
@@ -182,6 +184,19 @@ export function PlayerSkinView({
         return (
           <View style={styles.modelContainer}>
             <Oscilloscope isPlaying={isPlaying} coverUrl={coverUrl} title={title} artist={artist} accent={accent} />
+          </View>
+        )
+      case 'boombox':
+        return (
+          <View style={styles.modelContainer}>
+            <Boombox
+              isPlaying={isPlaying}
+              coverUrl={coverUrl}
+              title={title}
+              artist={artist}
+              trackKey={trackKey}
+              accent={accent}
+            />
           </View>
         )
     }

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors, ThemeName } from '@/theme/themes'
 import { useWornTape } from '@/hooks/useWornTape'
+import { usePartyCrossfade } from '@/hooks/usePartyCrossfade'
 import { sfx } from '@/services/sfxEngine'
 
 type SettingsRowProps = {
@@ -40,6 +41,7 @@ export default function SettingsScreen() {
   const { colors, themeName, setTheme } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
   const worn = useWornTape()
+  const partyX = usePartyCrossfade()
   const [sfxOn, setSfxOn] = useState(sfx.enabled)
 
   const toggleSfx = () => {
@@ -166,6 +168,50 @@ export default function SettingsScreen() {
               />
             </View>
           </TouchableOpacity>
+          <View style={styles.rowSep} />
+
+          {/* Party mode */}
+          <TouchableOpacity
+            style={styles.toggleRow}
+            activeOpacity={0.7}
+            onPress={() => { sfx.play('switch'); void partyX.toggleParty() }}
+          >
+            <Text style={styles.rowLabel}>PARTY MODE ∞</Text>
+            <View style={[styles.toggle, partyX.party && styles.toggleOn]}>
+              <View style={[styles.toggleKnob, partyX.party && styles.toggleKnobOn, partyX.party && { backgroundColor: colors.accent }]} />
+            </View>
+          </TouchableOpacity>
+          {partyX.party && <Text style={styles.hint}>AL TERMINAR LA COLA: RESHUFFLE Y SIGUE</Text>}
+          <View style={styles.rowSep} />
+
+          {/* Crossfade */}
+          <TouchableOpacity
+            style={styles.toggleRow}
+            activeOpacity={0.7}
+            onPress={() => { sfx.play('switch'); void partyX.toggleCrossfade() }}
+          >
+            <Text style={styles.rowLabel}>CROSSFADE</Text>
+            <View style={[styles.toggle, partyX.crossfade && styles.toggleOn]}>
+              <View style={[styles.toggleKnob, partyX.crossfade && styles.toggleKnobOn, partyX.crossfade && { backgroundColor: colors.accent }]} />
+            </View>
+          </TouchableOpacity>
+          {partyX.crossfade && (
+            <View style={styles.speedRow}>
+              {[1.5, 2.5, 4].map(sec => {
+                const isActive = Math.abs(sec - partyX.crossfadeSec) < 0.01
+                return (
+                  <TouchableOpacity
+                    key={sec}
+                    style={[styles.themeBtn, isActive && styles.themeBtnActive]}
+                    activeOpacity={0.7}
+                    onPress={() => { sfx.play('tick'); void partyX.setCrossfadeSec(sec) }}
+                  >
+                    <Text style={[styles.themeBtnText, isActive && styles.themeBtnTextActive]}>{sec}S</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          )}
         </View>
 
         {/* About card */}

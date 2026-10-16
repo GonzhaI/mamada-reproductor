@@ -9,6 +9,7 @@ import { ThemeProvider, useTheme } from '@/hooks/useTheme'
 import { useFonts } from '@/hooks/useFonts'
 import { TitleBar } from '@/components/TitleBar'
 import { SystemShortcuts } from '@/components/SystemShortcuts'
+import { AudioCoordinator } from '@/components/AudioCoordinator'
 
 import { PlayerSkinProvider } from '@/hooks/usePlayerSkin'
 import { DesktopClock } from '@/components/DesktopClock'
@@ -61,6 +62,7 @@ export default function RootLayout() {
           <PlayerProvider>
             <YtProvider>
               <SystemShortcuts />
+              <AudioCoordinator />
               <RootNavigator />
             </YtProvider>
           </PlayerProvider>

@@ -3,6 +3,7 @@ import { type Track } from '@/services/types'
 import { audioPlayer } from '@/services/player'
 import { Audio } from 'expo-av'
 import { bumpPlays } from '@/services/playStats'
+import { partyCrossfadeConfig, hydratePartyCrossfade, fadeVolumeIn, cancelFade } from '@/hooks/usePartyCrossfade'
 
 const FALLBACK_AUDIO_URL = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
 
@@ -98,6 +99,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     ensureAudioMode()
+    void hydratePartyCrossfade()
   }, [])
 
   useEffect(() => {
@@ -117,6 +119,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             const nextIdx = queueIndex + 1
             if (nextIdx < queue.length) {
               playTrackInternal(queue[nextIdx], queue, nextIdx)
+            } else if (partyCrossfadeConfig.party && queue.length > 0) {
+              // PARTY MODE: reshuffle de la cola y sigue desde el arranque
+              const copy = [...queue]
+              for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1))
+                ;[copy[i], copy[j]] = [copy[j]!, copy[i]!]
+              }
+              setQueue(copy)
+              setQueueCompleted(c => c + 1)
+              playTrackInternal(copy[0]!, copy, 0)
             } else {
               // cola completa: señal para el flip SIDE B del cassette
               setQueueCompleted(c => c + 1)
@@ -150,6 +162,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setCurrentTrack(track)
 
       await audioPlayer.loadTrack(track.audio ?? FALLBACK_AUDIO_URL)
+      // Crossfade de entrada: rampa desde ~0 al volumen actual (single-flight)
+      if (partyCrossfadeConfig.crossfade) {
+        const target = audioPlayer.volume ?? 1
+        fadeVolumeIn(v => void audioPlayer.setVolume(v), target, Math.min(1200, partyCrossfadeConfig.sec * 400))
+      }
       await audioPlayer.play()
       armDeadTrackWatchdog(track.id)
     } catch {
@@ -247,6 +264,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [queueIndex])
 
   const setVolume = useCallback((v: number) => {
+    cancelFade() // el gesto manual manda sobre la rampa del crossfade
     setVolumeState(v)
     audioPlayer.setVolume(v)
   }, [])
