@@ -7,6 +7,8 @@ export type PlayerStatus = {
   duration: number
   isPlaying: boolean
   isLoaded: boolean
+  /** true solo en la notificación donde el track terminó naturalmente */
+  didJustFinish: boolean
 }
 
 type PlayerListener = (status: PlayerStatus) => void
@@ -24,6 +26,7 @@ class AudioPlayer {
   private _duration = 0
   private _isPlaying = false
   private _isLoaded = false
+  private _didJustFinish = false
   private _volume = 1
 
   get position(): number {
@@ -56,12 +59,14 @@ class AudioPlayer {
       duration: this._duration,
       isPlaying: this._isPlaying,
       isLoaded: this._isLoaded,
+      didJustFinish: this._didJustFinish,
     }
   }
 
   private notify() {
     const status = this.getStatus()
     this.listeners.forEach(l => l(status))
+    this._didJustFinish = false // consume-on-read: un solo disparo por fin
   }
 
   async loadTrack(uri: string): Promise<void> {
@@ -86,6 +91,7 @@ class AudioPlayer {
         this._duration = status.durationMillis ?? 0
         this._isPlaying = status.isPlaying
         this._isLoaded = true
+        this._didJustFinish = status.didJustFinish
         this.notify()
       }
     })
@@ -165,6 +171,7 @@ class AudioPlayer {
     this._duration = 0
     this._isPlaying = false
     this._isLoaded = false
+    this._didJustFinish = false
     this.notify()
   }
 
@@ -209,6 +216,7 @@ class AudioPlayer {
     this._position = webAudioEngine.position
     this._duration = webAudioEngine.duration
     this._isPlaying = webAudioEngine.isPlaying
+    this._didJustFinish = webAudioEngine.consumeEnded()
     if (!this._isLoaded && forceLoaded) this._isLoaded = true
     this.notify()
   }

@@ -40,6 +40,12 @@ export function LyricsView({
   const viewHeight = useRef(0)
   const prevActive = useRef(-2)
 
+  // Canción nueva: resetear posiciones medidas y estado de scroll
+  useEffect(() => {
+    lineYs.current.clear()
+    prevActive.current = -2
+  }, [lines])
+
   useEffect(() => {
     if (activeIndex === prevActive.current) return
     prevActive.current = activeIndex

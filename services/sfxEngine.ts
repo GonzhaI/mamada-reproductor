@@ -125,6 +125,11 @@ class SfxEngine {
 
   setEnabled(v: boolean): void {
     this._enabled = v && Platform.OS === 'web'
+    if (!this._enabled) {
+      // apagar lo que ya está sonando (motor, estática)
+      this.stopMotor()
+      this.setStatic(0)
+    }
     AsyncStorage.setItem(PREF_ENABLED, this._enabled ? '1' : '0').catch(() => {})
   }
 
@@ -204,6 +209,7 @@ class SfxEngine {
   /** Nivel de estática 0..0.25 (0 = apagada). */
   setStatic(level: number): void {
     if (Platform.OS !== 'web') return
+    if (!this._enabled && level > 0) return // SFX apagados: no encender
     const ctx = this.ensureCtx()
     if (!ctx) return
     const target = Math.min(0.25, Math.max(0, level)) * this._volume * 1.4

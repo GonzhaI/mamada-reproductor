@@ -75,6 +75,12 @@ export default function PlaylistScreen() {
     playingArtist && playingTitle ? `${playingArtist}|${playingTitle}`.toLowerCase() : null
   const { offset: lyricsOffset, nudgeOffset: nudgeLyricsOffset } = useLyricsOffset(lyricsKey)
 
+  // (antes del early-return: Rules of Hooks — nunca condicionar un hook)
+  const totalSec = useMemo(
+    () => mix?.tracks.reduce((a, t) => a + parseDuration(t.duration), 0) ?? 0,
+    [mix]
+  )
+
   if (!mix) {
     return (
       <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
@@ -91,7 +97,6 @@ export default function PlaylistScreen() {
   const isActiveMix = yt.mix?.id === mix.id
   const currentIndex = isActiveMix ? yt.index : -1
   const current = isActiveMix ? mix.tracks[yt.index] : null
-  const totalSec = useMemo(() => mix.tracks.reduce((a, t) => a + parseDuration(t.duration), 0), [mix])
   const resumeHere = yt.resume?.mixId === mix.id && !isActiveMix ? yt.resume : null
 
   const handleShuffle = () => {

@@ -56,9 +56,11 @@ export function useLyricsOffset(trackKey: string | null | undefined): {
 
   const nudgeOffset = useCallback(
     (delta: number) => {
+      // durante la carga el offset del closure es del track anterior: ignorar
+      if (!ready) return
       setOffset(offset + delta)
     },
-    [offset, setOffset]
+    [offset, setOffset, ready]
   )
 
   return { offset, setOffset, nudgeOffset, ready }
