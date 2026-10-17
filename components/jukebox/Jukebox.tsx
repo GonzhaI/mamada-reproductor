@@ -76,11 +76,17 @@ export function Jukebox({
     return () => loop.stop()
   }, [isPlaying, glow])
 
-  const bubbleOpacity = (i: number) =>
-    wave.interpolate({
-      inputRange: [0, 0.25, 0.5, 0.75, 1],
-      outputRange: [0, 1, 2, 3, 4].map(k => 0.25 + 0.75 * (0.5 - 0.5 * Math.cos(2 * Math.PI * ((k / 4) - i / BUBBLES)))),
-    })
+  // Interpolaciones memoizadas: crearlas en cada render filtraría nodos Animated (el player re-renderiza a 4Hz)
+  const bubbleOps = useMemo(
+    () =>
+      Array.from({ length: BUBBLES }, (_, i) =>
+        wave.interpolate({
+          inputRange: [0, 0.25, 0.5, 0.75, 1],
+          outputRange: [0, 1, 2, 3, 4].map(k => 0.25 + 0.75 * (0.5 - 0.5 * Math.cos(2 * Math.PI * ((k / 4) - i / BUBBLES)))),
+        })
+      ),
+    [wave]
+  )
 
   return (
     <View style={styles.container}>
@@ -90,7 +96,7 @@ export function Jukebox({
 
         {/* Cabina con burbujas y ventana del disco */}
         <View style={styles.cabin}>
-          <BubbleTube styles={styles} opacityFor={bubbleOpacity} color={glowColor} />
+          <BubbleTube styles={styles} ops={bubbleOps} color={glowColor} />
           <View style={styles.window}>
             {coverUrl ? (
               <Image source={{ uri: coverUrl }} style={styles.cover} />
@@ -105,7 +111,7 @@ export function Jukebox({
               style={[styles.windowFlash, { opacity: windowFlash }]}
             />
           </View>
-          <BubbleTube styles={styles} opacityFor={bubbleOpacity} color={glowColor} />
+          <BubbleTube styles={styles} ops={bubbleOps} color={glowColor} />
         </View>
 
         {/* Placa de título */}
@@ -144,11 +150,11 @@ export function Jukebox({
 
 function BubbleTube({
   styles,
-  opacityFor,
+  ops,
   color,
 }: {
   styles: ReturnType<typeof createStyles>
-  opacityFor: (i: number) => RNAnimated.AnimatedInterpolation<number>
+  ops: RNAnimated.AnimatedInterpolation<number>[]
   color?: string
 }) {
   return (
@@ -156,7 +162,7 @@ function BubbleTube({
       {Array.from({ length: BUBBLES }, (_, i) => (
         <RNAnimated.View
           key={i}
-          style={[styles.bubble, { opacity: opacityFor(i) }, color ? { backgroundColor: color } : null]}
+          style={[styles.bubble, { opacity: ops[i] }, color ? { backgroundColor: color } : null]}
         />
       ))}
     </View>

@@ -58,6 +58,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const endedGuard = useRef<string | null>(null)
   // --- red anti-track-mudo ---
   const currentTrackIdRef = useRef<string | null>(null)
+  // el track ya arrancó a sonar => una pausa posterior es humana, no track mudo
+  const everPlayedRef = useRef<string | null>(null)
   const watchdogTimers = useRef<ReturnType<typeof setTimeout>[]>([])
   const fallbackTried = useRef<Set<string>>(new Set())
   const nextRef = useRef<() => Promise<void>>(async () => {})
@@ -72,6 +74,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     watchdogTimers.current.forEach(clearTimeout)
     const check1 = setTimeout(() => {
       if (endedGuard.current === trackId) return
+      if (everPlayedRef.current === trackId) return // sonó y lo pausaron: humano
       if (audioPlayer.isPlaying || !audioPlayer.isLoaded) return
       if (currentTrackIdRef.current !== trackId) return
       if (audioPlayer.position > 3) return // pausa humana a mitad: no tocar
@@ -89,6 +92,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }, 2500)
     const check2 = setTimeout(() => {
       if (endedGuard.current === trackId) return
+      if (everPlayedRef.current === trackId) return
       if (audioPlayer.isPlaying || !audioPlayer.isLoaded) return
       if (currentTrackIdRef.current !== trackId) return
       if (audioPlayer.position > 3) return
@@ -108,10 +112,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setDuration(status.duration / 1000)
       setIsPlaying(status.isPlaying)
       setIsLoaded(status.isLoaded)
-      if (!status.isPlaying && status.isLoaded && status.position > 0) {
-        const diff = status.duration - status.position
-        if (diff < 500) {
-          const finished = queue[queueIndex]
+      if (status.didJustFinish) {
+        const finished = queue[queueIndex]
           if (finished && endedGuard.current !== finished.id) {
             endedGuard.current = finished.id
             // patina: la canción se escuchó completa
@@ -135,7 +137,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             }
           }
         }
-      }
     })
     return unsub
   }, [queueIndex, queue])
@@ -168,6 +169,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         fadeVolumeIn(v => void audioPlayer.setVolume(v), target, Math.min(1200, partyCrossfadeConfig.sec * 400))
       }
       await audioPlayer.play()
+      everPlayedRef.current = track.id
       armDeadTrackWatchdog(track.id)
     } catch {
       setIsPlaying(false)

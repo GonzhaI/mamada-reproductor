@@ -72,7 +72,12 @@ export function Equalizer({ isPlaying, barCount = 10, accent }: EqualizerProps) 
       raf = requestAnimationFrame(tick)
       if (t - last < REACTIVE_FRAME_MS) return
       last = t
-      setLevels(audioPlayer.getAudioLevels(barCount))
+      // retener el último valor no-nulo: un frame sin FFT no debe
+      // alternar a modo random y remontar las barras
+      setLevels(prev => {
+        const next = audioPlayer.getAudioLevels(barCount)
+        return next ?? prev
+      })
     }
     raf = requestAnimationFrame(tick)
     return () => {

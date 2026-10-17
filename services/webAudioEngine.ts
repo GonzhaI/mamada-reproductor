@@ -36,6 +36,7 @@ class WebAudioEngine {
   private time: Uint8Array<ArrayBuffer> | null = null
   private smooth: number[] = []
   private analysable = false
+  private endedFlag = false // evento `ended` del elemento, consumido por el poll
   // Modo cinta gastada: filtro lowpass + wow/flutter + velocidad (pitch)
   private filter: BiquadFilterNode | null = null
   private wornEnabled = false
@@ -182,6 +183,9 @@ class WebAudioEngine {
       el.addEventListener('loadedmetadata', done, { once: true })
       el.addEventListener('canplay', done, { once: true })
       el.addEventListener('error', fail, { once: true })
+      el.addEventListener('ended', () => {
+        this.endedFlag = true
+      })
       setTimeout(done, 8000) // streams lentos: seguir igual
       el.src = uri
     })
@@ -232,6 +236,13 @@ class WebAudioEngine {
     }
   }
 
+  /** Señal de fin natural (evento ended del <audio>): true una sola vez por fin */
+  consumeEnded(): boolean {
+    const e = this.endedFlag
+    this.endedFlag = false
+    return e
+  }
+
   async play(): Promise<void> {
     if (!this.el) return
     if (this.ctx && this.ctx.state === 'suspended') {
@@ -274,6 +285,7 @@ class WebAudioEngine {
   private teardownElement(): void {
     const el = this.el
     this.el = null
+    this.endedFlag = false
     if (this.source) {
       try {
         this.source.disconnect()
