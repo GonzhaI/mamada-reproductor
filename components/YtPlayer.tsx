@@ -82,6 +82,7 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
   const containerRef = useRef<View>(null)
   const playerRef = useRef<YTPlayer | null>(null)
   const loadedIndexRef = useRef(startIndex)
+  const startIndexRef = useRef(startIndex)
   // refs espejo para callbacks frescos sin recrear el player
   const endedCb = useRef(onEnded)
   const playStateCb = useRef(onPlayingChange)
@@ -97,6 +98,7 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
   playStateCb.current = onPlayingChange
   timeCb.current = onTime
   wantPlay.current = playing
+  startIndexRef.current = startIndex
 
   const stopAudioAudit = () => {
     if (auditTimer.current) {
@@ -209,6 +211,12 @@ function YtEngine({ listKey, videoIds, startIndex, playing, onEnded, onPlayingCh
         events: {
           onReady: () => {
             if (bind) bind.current = { seekTo: s => { try { player.seekTo(s, true) } catch { /* noop */ } } }
+            // race: salto manual antes de que cargue iframe_api → create() usó el
+            // startIndex viejo; aplicar el salto pendiente ahora
+            if (startIndexRef.current !== loadedIndexRef.current) {
+              loadedIndexRef.current = startIndexRef.current
+              try { player.loadVideoById(videoIds[startIndexRef.current]) } catch { /* noop */ }
+            }
             if (wantPlay.current) guaranteedPlay()
             poll = setInterval(() => {
               try {

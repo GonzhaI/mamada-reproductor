@@ -7,46 +7,35 @@ import { audioPlayer } from '@/services/player'
  * Punto 2 — Coordinador de motores duales (Jamendo <-> YouTube).
  * Exclusión mutua por flanco: el motor que EMPIEZA a sonar pausa al otro.
  * Sin esto ambos se solapaban (nota conocida en AGENTS.md).
+ * Sin cooldown: pausar al otro motor no genera flanco de arranque, así que
+ * no hay ping-pong posible — un cooldown aquí dejaba pasar arranques reales
+ * dentro de su ventana (solapamiento).
  */
 export function AudioCoordinator() {
   const player = usePlayer()
   const yt = useYt()
   const prevJam = useRef(false)
   const prevYt = useRef(false)
-  const cooling = useRef(false)
-  const coolTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const jamPlaying = player.isPlaying && player.isLoaded
-  const ytPlaying = yt.playing && yt.mix !== null
   // estables: el efecto no debe re-correr en cada tick de position
   const setYtPlaying = yt.setPlaying
 
-  useEffect(() => () => {
-    if (coolTimer.current) clearTimeout(coolTimer.current)
-  }, [])
+  const jamPlaying = player.isPlaying && player.isLoaded
+  const ytPlaying = yt.playing && yt.mix !== null
 
-  const cooldown = () => {
-    cooling.current = true
-    if (coolTimer.current) clearTimeout(coolTimer.current)
-    coolTimer.current = setTimeout(() => { cooling.current = false }, 500)
-  }
-
-  // Jamendo empezó -> pausar YT
+  // Jamendo empezó -> pausar YT (siempre, sin ventana de cooldown)
   useEffect(() => {
     const started = jamPlaying && !prevJam.current
     prevJam.current = jamPlaying
-    if (started && ytPlaying && !cooling.current) {
-      cooldown()
+    if (started && ytPlaying) {
       setYtPlaying(false)
     }
   }, [jamPlaying, ytPlaying, setYtPlaying])
 
-  // YT empezó -> pausar Jamendo
+  // YT empezó -> pausar Jamendo (siempre, sin ventana de cooldown)
   useEffect(() => {
     const started = ytPlaying && !prevYt.current
     prevYt.current = ytPlaying
-    if (started && jamPlaying && !cooling.current) {
-      cooldown()
+    if (started && jamPlaying) {
       try { void audioPlayer.pause() } catch { /* noop */ }
     }
   }, [ytPlaying, jamPlaying])

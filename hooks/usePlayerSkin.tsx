@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export type PlayerSkin = 'cassette' | 'vinyl' | 'turntable' | 'jukebox' | 'radio' | 'scope' | 'boombox'
@@ -16,11 +16,13 @@ const PlayerSkinContext = createContext<PlayerSkinContextValue | null>(null)
 
 export function PlayerSkinProvider({ children }: { children: React.ReactNode }) {
   const [skin, setSkinState] = useState<PlayerSkin>('cassette')
+  // race de mount: el getItem tardío no debe pisar una elección ya hecha
+  const userChanged = useRef(false)
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then(saved => {
-        if (saved && SKINS.includes(saved as PlayerSkin)) {
+        if (!userChanged.current && saved && SKINS.includes(saved as PlayerSkin)) {
           setSkinState(saved as PlayerSkin)
         }
       })
@@ -28,6 +30,7 @@ export function PlayerSkinProvider({ children }: { children: React.ReactNode }) 
   }, [])
 
   const setSkin = useCallback(async (name: PlayerSkin) => {
+    userChanged.current = true
     setSkinState(name)
     try {
       await AsyncStorage.setItem(STORAGE_KEY, name)

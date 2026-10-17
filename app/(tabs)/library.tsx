@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -109,6 +109,9 @@ export default function LibraryScreen() {
       .map(p => ({ id: p.id, name: p.name.toUpperCase(), count: p.trackCount, type: 'playlist' as const })),
   ]
 
+  // identidad estable entre renders: sin esto cada tick de posición remonta los separadores
+  const renderSeparator = useCallback(() => <View style={styles.separator} />, [styles])
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
@@ -138,7 +141,7 @@ export default function LibraryScreen() {
                 onPress={item.type === 'favorites' ? handlePlayFavorites : () => handlePlayPlaylist(item.id)}
               />
             )}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ItemSeparatorComponent={renderSeparator}
             ListHeaderComponent={<MixesSection />}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
