@@ -1,6 +1,7 @@
 // Extracción del color dominante de una carátula, sin dependencias.
 // Solo web/Tauri (canvas 2D); en nativo devuelve null y el caller usa el
-// accent del tema. Resultados cacheados por URL (incluye los negativos).
+// accent del tema. Resultados cacheados por URL (los negativos por timeout
+// no se cachean: se reintentan).
 
 const SAMPLE = 24 // muestreo 24x24: suficiente y barato
 
@@ -107,10 +108,11 @@ async function extractViaCanvas(url: string): Promise<string | null> {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve()
-      img.onerror = () => reject(new Error('cover load error'))
+      let timer: ReturnType<typeof setTimeout> | null = null
+      img.onload = () => { if (timer) clearTimeout(timer); resolve() }
+      img.onerror = () => { if (timer) clearTimeout(timer); reject(new Error('cover load error')) }
+      timer = setTimeout(() => reject(new Error('cover load timeout')), 10000)
       img.src = url
-      setTimeout(() => reject(new Error('cover load timeout')), 10000)
     })
     const canvas = document.createElement('canvas')
     canvas.width = SAMPLE
@@ -120,8 +122,10 @@ async function extractViaCanvas(url: string): Promise<string | null> {
     ctx.drawImage(img, 0, 0, SAMPLE, SAMPLE)
     const { data } = ctx.getImageData(0, 0, SAMPLE, SAMPLE)
     return extractFromPixels(data)
-  } catch {
-    // canvas tainted (sin CORS), imagen rota o timeout
+  } catch (err) {
+    // canvas tainted (sin CORS), imagen rota o timeout.
+    // el timeout es transitorio (glitch de red): se re-lanza para NO cachear el negativo
+    if (err instanceof Error && err.message === 'cover load timeout') throw err
     return null
   }
 }
@@ -136,7 +140,11 @@ export async function extractCoverAccent(
   const url = coverUrl == null ? null : String(coverUrl)
   if (!url || !/^https?:\/\//.test(url)) return null
   if (cache.has(url)) return cache.get(url) ?? null
-  const color = await extractViaCanvas(url)
-  cache.set(url, color)
-  return color
+  try {
+    const color = await extractViaCanvas(url)
+    cache.set(url, color)
+    return color
+  } catch {
+    return null // timeout: no se cachea, el próximo intento lo reintenta
+  }
 }

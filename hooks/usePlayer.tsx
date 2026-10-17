@@ -227,19 +227,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const removeFromQueue = useCallback((index: number) => {
-    setQueue(prev => {
-      const next = prev.filter((_, i) => i !== index)
-      if (index < queueIndex) {
-        setQueueIndex(qi => qi - 1)
-      } else if (index === queueIndex) {
-        audioPlayer.unload()
-        setCurrentTrack(null)
-        setQueueIndex(-1)
-        setIsPlaying(false)
-        setIsLoaded(false)
-      }
-      return next
-    })
+    // side effects FUERA del updater (un updater debe ser puro: StrictMode lo invoca 2x)
+    setQueue(prev => prev.filter((_, i) => i !== index))
+    if (index < queueIndex) {
+      setQueueIndex(qi => qi - 1)
+    } else if (index === queueIndex) {
+      void audioPlayer.unload()
+      setCurrentTrack(null)
+      setQueueIndex(-1)
+      setIsPlaying(false)
+      setIsLoaded(false)
+    }
   }, [queueIndex])
 
   const clearQueue = useCallback(async () => {

@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
 import { sfx } from '@/services/sfxEngine'
 import { getGenreTracks } from '@/services/jamendoApi'
+import { type Track } from '@/services/types'
 import { usePlayer } from '@/hooks/usePlayer'
 
 interface RadioProps {
@@ -213,7 +214,14 @@ export function Radio() {
   )
 }
 
+// caché por estación: ALEATORIO hace 3 fetches (cada uno con reintentos
+// internos) — sin caché, cada click en SINTONIZAR dispara hasta 9 requests
+const stationCache = new Map<string, Track[]>()
+
 async function getGenreTracksFor(id: string) {
+  const cached = stationCache.get(id)
+  if (cached) return cached
+  let tracks: Track[]
   if (id === 'random') {
     const [a, b, c] = await Promise.all([
       getGenreTracks('lofi'),
@@ -226,9 +234,12 @@ async function getGenreTracksFor(id: string) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[all[i], all[j]] = [all[j]!, all[i]!]
     }
-    return all
+    tracks = all
+  } else {
+    tracks = await getGenreTracks(id)
   }
-  return getGenreTracks(id)
+  stationCache.set(id, tracks)
+  return tracks
 }
 
 const createStyles = (colors: ThemeColors) =>

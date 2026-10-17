@@ -33,7 +33,8 @@ function parseLrc(raw: string): LyricLine[] {
       lastEnd = re.lastIndex
     }
     if (!times.length) continue
-    const text = rawLine.slice(lastEnd).trim()
+    // strip de tags word-sync (<00:12.50>) que LRCLIB a veces inyecta
+    const text = rawLine.slice(lastEnd).replace(/<[^>]+>/g, ' ').trim()
     for (const time of times) out.push({ time, text })
   }
   return out.sort((a, b) => a.time - b.time)

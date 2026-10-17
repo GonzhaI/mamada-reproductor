@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -81,6 +81,9 @@ export default function PlaylistScreen() {
     [mix]
   )
 
+  // identidad estable entre renders: sin esto cada tick de posición remonta los separadores
+  const renderSeparator = useCallback(() => <View style={styles.separator} />, [styles])
+
   if (!mix) {
     return (
       <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
@@ -142,7 +145,7 @@ export default function PlaylistScreen() {
             onPress={() => handleTrackPress(item, index)}
           />
         )}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={renderSeparator}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
