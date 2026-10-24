@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native'
-import { usePlayer } from '@/hooks/usePlayer'
+import { usePlayerActions, usePlayerData } from '@/hooks/usePlayer'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
 import { sfx } from '@/services/sfxEngine'
@@ -14,7 +14,8 @@ function formatDuration(totalSeconds: number): string {
 export function QueueList() {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
-  const { queue, queueIndex, jumpToIndex, shuffleQueue } = usePlayer()
+  const { queue, queueIndex } = usePlayerData()
+  const { jumpToIndex, shuffleQueue } = usePlayerActions()
 
   if (queue.length === 0) {
     return (

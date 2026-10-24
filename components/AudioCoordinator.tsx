@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { usePlayer } from '@/hooks/usePlayer'
+import { usePlayerPlayback } from '@/hooks/usePlayer'
 import { useYt } from '@/hooks/useYt'
 import { audioPlayer } from '@/services/player'
 
@@ -12,7 +12,7 @@ import { audioPlayer } from '@/services/player'
  * dentro de su ventana (solapamiento).
  */
 export function AudioCoordinator() {
-  const player = usePlayer()
+  const player = usePlayerPlayback()
   const yt = useYt()
   const prevJam = useRef(false)
   const prevYt = useRef(false)

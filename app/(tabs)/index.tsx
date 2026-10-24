@@ -10,7 +10,7 @@ import { ProgressBar } from '@/components/ProgressBar'
 import { MarqueeText } from '@/components/MarqueeText'
 import { QueueList } from '@/components/QueueList'
 import { VolumeSlider } from '@/components/VolumeSlider'
-import { usePlayer } from '@/hooks/usePlayer'
+import { usePlayerActions, usePlayerData, usePlayerStatus } from '@/hooks/usePlayer'
 import { useCoverAccent } from '@/hooks/useCoverAccent'
 import { useLyrics } from '@/hooks/useLyrics'
 import { useLyricsOffset } from '@/hooks/useLyricsOffset'
@@ -23,20 +23,19 @@ export default function PlayerScreen() {
   const styles = useMemo(() => createStyles(colors), [colors])
   const [showQueue, setShowQueue] = useState(false)
   const [showLyrics, setShowLyrics] = useState(false)
+  const { currentTrack, volume, queueCompleted, playerError, resumeSession } = usePlayerData()
+  const { isPlaying, position, duration } = usePlayerStatus()
   const {
-    currentTrack,
-    isPlaying,
-    isLoaded,
-    position,
-    duration,
-    volume,
-    queueCompleted,
     togglePlay,
     seekTo,
     next,
     previous,
     setVolume,
-  } = usePlayer()
+    retryCurrentTrack,
+    clearPlayerError,
+    resumePlayback,
+    dismissResume,
+  } = usePlayerActions()
   const coverUrl = currentTrack?.album?.coverUrl ?? undefined
   const accent = useCoverAccent(coverUrl)
   const playCount = usePlayCount(currentTrack?.id)
@@ -57,7 +56,27 @@ export default function PlayerScreen() {
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>⏏</Text>
             <Text style={styles.emptyLabel}>NO TRACK SELECTED</Text>
-            <Text style={styles.emptyHint}>PICK SOMETHING FROM MUSIC</Text>
+            {resumeSession ? (
+              <View style={styles.resumeCard}>
+                <Text style={styles.resumeLabel}>RESUME SESSION</Text>
+                <Text style={styles.resumeTitle} numberOfLines={1}>
+                  {resumeSession.currentTrack.title.toUpperCase()}
+                </Text>
+                <Text style={styles.resumeArtist} numberOfLines={1}>
+                  {resumeSession.currentTrack.artists.map(a => a.name).join(', ')}
+                </Text>
+                <View style={styles.resumeActions}>
+                  <TouchableOpacity style={styles.resumeButton} onPress={() => void resumePlayback()}>
+                    <Text style={styles.resumeButtonText}>▶ CONTINUE</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.dismissButton} onPress={dismissResume}>
+                    <Text style={styles.dismissButtonText}>DISMISS</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.emptyHint}>PICK SOMETHING FROM MUSIC</Text>
+            )}
           </View>
         </View>
       </SafeAreaView>
@@ -163,6 +182,20 @@ export default function PlayerScreen() {
               )}
             </View>
           </>
+        )}
+
+        {playerError && (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorText}>{playerError}</Text>
+            <View style={styles.errorActions}>
+              <TouchableOpacity onPress={() => void retryCurrentTrack()} style={styles.errorButton}>
+                <Text style={styles.errorButtonText}>RETRY</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={clearPlayerError} style={styles.errorDismiss}>
+                <Text style={styles.errorDismissText}>CLOSE</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
 
         {/* Progress Section */}
@@ -348,5 +381,90 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 14,
       color: colors.textMuted,
       letterSpacing: 1,
+    },
+    resumeCard: {
+      width: '100%',
+      maxWidth: 340,
+      borderWidth: 1,
+      borderColor: colors.accent,
+      backgroundColor: colors.surface,
+      padding: 16,
+      gap: 6,
+    },
+    resumeLabel: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.accent,
+      letterSpacing: 1,
+    },
+    resumeTitle: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 22,
+      color: colors.text,
+    },
+    resumeArtist: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 16,
+      color: colors.textMuted,
+    },
+    resumeActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 8,
+    },
+    resumeButton: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    resumeButtonText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.bg,
+    },
+    dismissButton: {
+      paddingHorizontal: 8,
+      paddingVertical: 8,
+    },
+    dismissButtonText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 7,
+      color: colors.textMuted,
+    },
+    errorCard: {
+      borderWidth: 1,
+      borderColor: colors.accent,
+      backgroundColor: colors.surface,
+      padding: 10,
+      gap: 8,
+    },
+    errorText: {
+      fontFamily: 'VT323_400Regular',
+      fontSize: 17,
+      color: colors.text,
+    },
+    errorActions: {
+      flexDirection: 'row',
+      gap: 14,
+    },
+    errorButton: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    errorButtonText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 6,
+      color: colors.bg,
+    },
+    errorDismiss: {
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+    },
+    errorDismissText: {
+      fontFamily: 'PressStart2P_400Regular',
+      fontSize: 6,
+      color: colors.textMuted,
     },
   })

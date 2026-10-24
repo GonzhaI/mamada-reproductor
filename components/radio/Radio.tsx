@@ -11,7 +11,7 @@ import type { ThemeColors } from '@/theme/themes'
 import { sfx } from '@/services/sfxEngine'
 import { getGenreTracks } from '@/services/jamendoApi'
 import { type Track } from '@/services/types'
-import { usePlayer } from '@/hooks/usePlayer'
+import { usePlayerActions, usePlayerPlayback } from '@/hooks/usePlayer'
 
 interface RadioProps {
   isPlaying: boolean
@@ -60,7 +60,8 @@ function nearestStation(freq: number): { station: Station; distance: number } {
 export function Radio() {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
-  const { playTrack, isPlaying, togglePlay } = usePlayer()
+  const { playTrack, togglePlay } = usePlayerActions()
+  const { isPlaying } = usePlayerPlayback()
 
   const [freq, setFreq] = useState(STATIONS[0]!.freq)
   const [tuning, setTuning] = useState(false)

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator }
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useLibrary } from '@/hooks/useLibrary'
-import { usePlayer } from '@/hooks/usePlayer'
+import { usePlayerActions } from '@/hooks/usePlayer'
 import { getPlaylistTracks } from '@/services/jamendoApi'
 import { AWESOME_MIXES } from '@/services/awesomeMixData'
 import { ART_COVERS, CASSETTE_COVERS, DITHERED_COVERS } from '@/services/mixCovers'
@@ -83,7 +83,7 @@ export default function LibraryScreen() {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
   const { favorites, playlists, loading, error, refresh } = useLibrary()
-  const { playTrack } = usePlayer()
+  const { playTrack } = usePlayerActions()
 
   const handlePlayFavorites = () => {
     if (favorites.length > 0) {

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Platform } from 'react-native'
-import { usePlayer } from '@/hooks/usePlayer'
+import { usePlayerActions, usePlayerData, usePlayerStatus } from '@/hooks/usePlayer'
 import { useYt } from '@/hooks/useYt'
 import {
   setMediaActionHandlers,
@@ -21,7 +21,9 @@ const VOLUME_STEP = 0.1
  * El motor activo es YouTube si hay un mix cargado; si no, Jamendo.
  */
 export function SystemShortcuts() {
-  const player = usePlayer()
+  const playerData = usePlayerData()
+  const playerStatus = usePlayerStatus()
+  const playerActions = usePlayerActions()
   const yt = useYt()
 
   // Preferencias + precarga de samples de foley (web only)
@@ -40,21 +42,21 @@ export function SystemShortcuts() {
     bumpVolume: (_delta: number) => {},
   })
   actionsRef.current = {
-    playPause: () => (ytActive ? yt.togglePlay() : player.togglePlay()),
-    next: () => (ytActive ? yt.next() : void player.next()),
-    prev: () => (ytActive ? yt.prev() : void player.previous()),
+    playPause: () => (ytActive ? yt.togglePlay() : playerActions.togglePlay()),
+    next: () => (ytActive ? yt.next() : void playerActions.next()),
+    prev: () => (ytActive ? yt.prev() : void playerActions.previous()),
     seekBy: delta => {
       if (ytActive && yt.mix) {
         const target = Math.min(Math.max(yt.position + delta, 0), Math.max(yt.duration - 1, 0))
         yt.seekTo(target)
-      } else if (!ytActive && player.isLoaded) {
-        const target = Math.min(Math.max(player.position + delta, 0), Math.max(player.duration - 1, 0))
-        void player.seekTo(target)
+      } else if (!ytActive && playerStatus.isLoaded) {
+        const target = Math.min(Math.max(playerStatus.position + delta, 0), Math.max(playerStatus.duration - 1, 0))
+        void playerActions.seekTo(target)
       }
     },
     bumpVolume: delta => {
-      const v = Math.min(1, Math.max(0, Number((player.volume + delta).toFixed(2))))
-      player.setVolume(v)
+      const v = Math.min(1, Math.max(0, Number((playerData.volume + delta).toFixed(2))))
+      playerActions.setVolume(v)
     },
   }
 
@@ -100,7 +102,7 @@ export function SystemShortcuts() {
       pause: () => actionsRef.current.playPause(),
       nextTrack: () => actionsRef.current.next(),
       previousTrack: () => actionsRef.current.prev(),
-      seekTo: seconds => actionsRef.current.seekBy(seconds - (ytActive ? yt.position : player.position)),
+      seekTo: seconds => actionsRef.current.seekBy(seconds - (ytActive ? yt.position : playerStatus.position)),
     })
     return () => setMediaActionHandlers(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,8 +119,8 @@ export function SystemShortcuts() {
         album: `${yt.mix.title} — ${yt.mix.movie}`,
         artworkUri: ART_COVERS[yt.mix.id],
       })
-    } else if (player.currentTrack) {
-      const t = player.currentTrack
+    } else if (playerData.currentTrack) {
+      const t = playerData.currentTrack
       setMediaMetadata({
         title: t.title,
         artist: t.artists.map(a => a.name).join(', '),
@@ -127,14 +129,14 @@ export function SystemShortcuts() {
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ytActive, yt.mix?.id, yt.index, player.currentTrack?.id])
+  }, [ytActive, yt.mix?.id, yt.index, playerData.currentTrack?.id])
 
   // --- mediaSession: estado de reproducción ---
   useEffect(() => {
     if (Platform.OS !== 'web') return
-    const playing = ytActive ? yt.playing : player.isPlaying && player.isLoaded
+    const playing = ytActive ? yt.playing : playerStatus.isPlaying && playerStatus.isLoaded
     setMediaPlaybackState(playing ? 'playing' : 'paused')
-  }, [ytActive, yt.playing, player.isPlaying, player.isLoaded])
+  }, [ytActive, yt.playing, playerStatus.isPlaying, playerStatus.isLoaded])
 
   return null
 }

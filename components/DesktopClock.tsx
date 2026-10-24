@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { StyleSheet, View, Text } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
-import { usePlayer } from '@/hooks/usePlayer'
+import { usePlayerData } from '@/hooks/usePlayer'
 
 interface DesktopClockProps {
   visible: boolean
@@ -16,7 +16,7 @@ interface DesktopClockProps {
 export function DesktopClock({ visible }: DesktopClockProps) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
-  const { currentTrack } = usePlayer()
+  const { currentTrack } = usePlayerData()
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
