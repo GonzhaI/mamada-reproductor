@@ -10,6 +10,7 @@ import { ART_COVERS, CASSETTE_COVERS, DITHERED_COVERS } from '@/services/mixCove
 import { CrossfadeCover } from '@/components/CrossfadeCover'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeColors } from '@/theme/themes'
+import { SmartRadioCard } from '@/components/SmartRadioCard'
 
 type PlaylistItem = {
   id: string
@@ -142,7 +143,13 @@ export default function LibraryScreen() {
               />
             )}
             ItemSeparatorComponent={renderSeparator}
-            ListHeaderComponent={<MixesSection />}
+            ListHeaderComponent={(
+              <>
+                <SmartRadioCard />
+                <View style={{ height: 18 }} />
+                <MixesSection />
+              </>
+            )}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             onRefresh={refresh}

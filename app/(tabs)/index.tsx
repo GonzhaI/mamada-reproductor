@@ -17,6 +17,7 @@ import { useLyricsOffset } from '@/hooks/useLyricsOffset'
 import { LyricsView } from '@/components/LyricsView'
 import { sfx } from '@/services/sfxEngine'
 import { usePlayCount } from '@/hooks/usePlayCount'
+import { ReactiveVisualizer } from '@/components/ReactiveVisualizer'
 
 export default function PlayerScreen() {
   const { colors } = useTheme()
@@ -165,6 +166,7 @@ export default function PlayerScreen() {
             {/* Equalizer */}
             <View style={styles.eqContainer}>
               <Equalizer isPlaying={isPlaying} barCount={12} accent={accent} />
+              <ReactiveVisualizer isPlaying={isPlaying} accent={accent} />
             </View>
 
             {/* Track Info */}
